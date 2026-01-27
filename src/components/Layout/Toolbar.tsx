@@ -14,6 +14,12 @@ import {
   FileImageOutlined,
   FileTextOutlined,
   FileWordOutlined,
+  MergeCellsOutlined,
+  FontColorsOutlined,
+  HighlightOutlined,
+  ScissorOutlined,
+  SwapOutlined,
+  SortAscendingOutlined,
 } from '@ant-design/icons';
 import { useUIStore } from '@/stores';
 
@@ -29,6 +35,13 @@ interface ToolbarProps {
   onExportAsImages: () => void;
   onExportAsText: () => void;
   onExportAsWord: () => void;
+  onMergePDFs: () => void;
+  onAddWatermark: () => void;
+  onAddHeaderFooter: () => void;
+  onEraseContent: () => void;
+  onAddHighlight: () => void;
+  onReplacePage: () => void;
+  onReversePages: () => void;
   fileName: string | null;
   hasUnsavedChanges: boolean;
   canSave: boolean;
@@ -44,6 +57,13 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   onExportAsImages,
   onExportAsText,
   onExportAsWord,
+  onMergePDFs,
+  onAddWatermark,
+  onAddHeaderFooter,
+  onEraseContent,
+  onAddHighlight,
+  onReplacePage,
+  onReversePages,
   fileName,
   hasUnsavedChanges,
   canSave,
@@ -117,6 +137,50 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             disabled={!canSave}
           >
             Insert Text
+          </Button>
+        </Space>
+
+        <Space>
+          <Button
+            icon={<MergeCellsOutlined />}
+            onClick={onMergePDFs}
+          >
+            Merge PDFs
+          </Button>
+          <Button
+            icon={<FontColorsOutlined />}
+            onClick={onAddWatermark}
+            disabled={!canSave}
+          >
+            Watermark
+          </Button>
+          <Button
+            icon={<FontSizeOutlined />}
+            onClick={onAddHeaderFooter}
+            disabled={!canSave}
+          >
+            Header/Footer
+          </Button>
+          <Button
+            icon={<HighlightOutlined />}
+            onClick={onAddHighlight}
+            disabled={!canSave}
+          >
+            Highlight
+          </Button>
+          <Button
+            icon={<ScissorOutlined />}
+            onClick={onEraseContent}
+            disabled={!canSave}
+          >
+            Erase
+          </Button>
+          <Button
+            icon={<SortAscendingOutlined />}
+            onClick={onReversePages}
+            disabled={!canSave}
+          >
+            Reverse Pages
           </Button>
         </Space>
 
