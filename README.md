@@ -26,6 +26,17 @@ A cross-platform desktop PDF editor built with Electron, React, and TypeScript.
 - ✅ Export to plain text (.txt)
 - ✅ Export pages as images (PNG)
 
+### Phase 4: Advanced Features ✅
+- ✅ Merge multiple PDF files with drag-to-reorder
+- ✅ Add text watermarks with customization (position, size, opacity, rotation, color)
+- ✅ Add image watermarks with positioning (PNG/JPG)
+- ✅ Add headers with page numbers and custom formatting
+- ✅ Add footers with page numbers and custom formatting
+- ✅ Erase content in rectangular regions
+- ✅ Replace pages from another PDF
+- ✅ Reverse page order
+- ✅ Add highlights to regions with custom colors
+
 ## Tech Stack
 
 - **Electron** - Desktop application framework
@@ -102,7 +113,7 @@ pdf-editor/
 - [x] Phase 1: Core Viewer
 - [x] Phase 2: Basic Editing
 - [x] Phase 3: Advanced Editing
-- [ ] Phase 4: Advanced Features (merge, watermarks, headers/footers)
+- [x] Phase 4: Advanced Features
 
 ## License
 
