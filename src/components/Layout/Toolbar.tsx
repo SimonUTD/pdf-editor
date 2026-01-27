@@ -1,5 +1,6 @@
 import React from 'react';
-import { Button, Space, Typography, Divider } from 'antd';
+import { Button, Space, Typography, Divider, Dropdown } from 'antd';
+import type { MenuProps } from 'antd';
 import {
   FileOutlined,
   SaveOutlined,
@@ -7,6 +8,12 @@ import {
   ZoomInOutlined,
   ZoomOutOutlined,
   FullscreenOutlined,
+  ExportOutlined,
+  PictureOutlined,
+  FontSizeOutlined,
+  FileImageOutlined,
+  FileTextOutlined,
+  FileWordOutlined,
 } from '@ant-design/icons';
 import { useUIStore } from '@/stores';
 
@@ -17,6 +24,11 @@ interface ToolbarProps {
   onSave: () => void;
   onSaveAs: () => void;
   onPrint: () => void;
+  onInsertImage: () => void;
+  onInsertText: () => void;
+  onExportAsImages: () => void;
+  onExportAsText: () => void;
+  onExportAsWord: () => void;
   fileName: string | null;
   hasUnsavedChanges: boolean;
   canSave: boolean;
@@ -27,11 +39,37 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   onSave,
   onSaveAs,
   onPrint,
+  onInsertImage,
+  onInsertText,
+  onExportAsImages,
+  onExportAsText,
+  onExportAsWord,
   fileName,
   hasUnsavedChanges,
   canSave,
 }) => {
   const { zoom, zoomIn, zoomOut, resetZoom } = useUIStore();
+
+  const exportMenuItems: MenuProps['items'] = [
+    {
+      key: 'export-images',
+      label: 'Export as Images (PNG)',
+      icon: <FileImageOutlined />,
+      onClick: onExportAsImages,
+    },
+    {
+      key: 'export-text',
+      label: 'Export as Text (TXT)',
+      icon: <FileTextOutlined />,
+      onClick: onExportAsText,
+    },
+    {
+      key: 'export-word',
+      label: 'Export as Word (DOCX)',
+      icon: <FileWordOutlined />,
+      onClick: onExportAsWord,
+    },
+  ];
 
   return (
     <div
@@ -63,6 +101,29 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           <Button icon={<PrinterOutlined />} onClick={onPrint} disabled={!canSave}>
             Print
           </Button>
+        </Space>
+
+        <Space>
+          <Button
+            icon={<PictureOutlined />}
+            onClick={onInsertImage}
+            disabled={!canSave}
+          >
+            Insert Image
+          </Button>
+          <Button
+            icon={<FontSizeOutlined />}
+            onClick={onInsertText}
+            disabled={!canSave}
+          >
+            Insert Text
+          </Button>
+        </Space>
+
+        <Space>
+          <Dropdown menu={{ items: exportMenuItems }} disabled={!canSave}>
+            <Button icon={<ExportOutlined />}>Export</Button>
+          </Dropdown>
         </Space>
 
         <Space>
