@@ -190,4 +190,55 @@ export class PDFEditor {
       height,
     });
   }
+
+  /**
+   * Inserts text into a PDF page at the specified position.
+   *
+   * @param pdfDoc - The PDF document to modify
+   * @param pageIndex - Zero-based index of the page to insert text on
+   * @param text - The text content to insert
+   * @param x - X coordinate for text placement (in points)
+   * @param y - Y coordinate for text placement (in points)
+   * @param fontSize - Font size (default: 12)
+   * @param color - RGB color object (default: black)
+   * @throws Error if pageIndex is out of bounds
+   */
+  static async insertText(
+    pdfDoc: PDFDocument,
+    pageIndex: number,
+    text: string,
+    x: number,
+    y: number,
+    fontSize: number = 12,
+    color: { r: number; g: number; b: number } = { r: 0, g: 0, b: 0 }
+  ): Promise<void> {
+    const pageCount = pdfDoc.getPageCount();
+
+    if (pageIndex < 0 || pageIndex >= pageCount) {
+      throw new Error(
+        `Invalid pageIndex: ${pageIndex}. Must be between 0 and ${pageCount - 1}`
+      );
+    }
+
+    if (!text || text.trim().length === 0) {
+      throw new Error('Text content cannot be empty');
+    }
+
+    if (fontSize <= 0) {
+      throw new Error(`Invalid fontSize: ${fontSize}. Must be positive`);
+    }
+
+    const page = pdfDoc.getPage(pageIndex);
+    const pageHeight = page.getHeight();
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+
+    // Draw text at specified position (convert y to PDF coordinate system)
+    page.drawText(text, {
+      x,
+      y: pageHeight - y - fontSize, // PDF coordinates start from bottom-left
+      size: fontSize,
+      font,
+      color: rgb(color.r, color.g, color.b),
+    });
+  }
 }
