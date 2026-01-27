@@ -29,6 +29,8 @@
   "homepage": "https://github.com/SimonUTD/pdf-editor#readme",
   "dependencies": {
     "antd": "^6.2.2",
+    "docx": "^9.5.1",
+    "file-saver": "^2.0.5",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^5.4.530",
     "react": "^19.2.4",
@@ -36,6 +38,7 @@
     "zustand": "^5.0.10"
   },
   "devDependencies": {
+    "@types/file-saver": "^2.0.7",
     "@types/node": "^22.14.3",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
