@@ -6,9 +6,16 @@ import { useUIStore } from '@/stores';
 interface SidebarProps {
   pdfDocument: any;
   totalPages: number;
+  onDeletePage: (pageNumber: number) => void;
+  onInsertBlankPage: (afterPageNumber: number) => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ pdfDocument, totalPages }) => {
+export const Sidebar: React.FC<SidebarProps> = ({
+  pdfDocument,
+  totalPages,
+  onDeletePage,
+  onInsertBlankPage,
+}) => {
   const { selectPage } = useUIStore();
 
   if (!pdfDocument || totalPages === 0) {
@@ -27,6 +34,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ pdfDocument, totalPages }) => 
           pdfDocument={pdfDocument}
           pageNumber={index + 1}
           onClick={() => selectPage(index)}
+          onDeletePage={onDeletePage}
+          onInsertBlankPage={onInsertBlankPage}
         />
       ))}
     </div>
