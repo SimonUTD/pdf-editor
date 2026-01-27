@@ -1,7 +1,9 @@
 import React from 'react';
-import { Button, Space, Typography } from 'antd';
+import { Button, Space, Typography, Divider } from 'antd';
 import {
   FileOutlined,
+  SaveOutlined,
+  PrinterOutlined,
   ZoomInOutlined,
   ZoomOutOutlined,
   FullscreenOutlined,
@@ -12,10 +14,23 @@ const { Text } = Typography;
 
 interface ToolbarProps {
   onOpenFile: () => void;
+  onSave: () => void;
+  onSaveAs: () => void;
+  onPrint: () => void;
   fileName: string | null;
+  hasUnsavedChanges: boolean;
+  canSave: boolean;
 }
 
-export const Toolbar: React.FC<ToolbarProps> = ({ onOpenFile, fileName }) => {
+export const Toolbar: React.FC<ToolbarProps> = ({
+  onOpenFile,
+  onSave,
+  onSaveAs,
+  onPrint,
+  fileName,
+  hasUnsavedChanges,
+  canSave,
+}) => {
   const { zoom, zoomIn, zoomOut, resetZoom } = useUIStore();
 
   return (
@@ -30,11 +45,34 @@ export const Toolbar: React.FC<ToolbarProps> = ({ onOpenFile, fileName }) => {
         backgroundColor: '#fff',
       }}
     >
-      <Space>
-        <Button icon={<FileOutlined />} onClick={onOpenFile}>
-          Open PDF
-        </Button>
-        {fileName && <Text type="secondary">{fileName}</Text>}
+      <Space split={<Divider type="vertical" />}>
+        <Space>
+          <Button icon={<FileOutlined />} onClick={onOpenFile}>
+            Open
+          </Button>
+          <Button
+            icon={<SaveOutlined />}
+            onClick={onSave}
+            disabled={!canSave || !hasUnsavedChanges}
+          >
+            Save
+          </Button>
+          <Button onClick={onSaveAs} disabled={!canSave}>
+            Save As
+          </Button>
+          <Button icon={<PrinterOutlined />} onClick={onPrint} disabled={!canSave}>
+            Print
+          </Button>
+        </Space>
+
+        <Space>
+          {fileName && (
+            <Text type="secondary">
+              {fileName}
+              {hasUnsavedChanges && ' *'}
+            </Text>
+          )}
+        </Space>
       </Space>
 
       <Space>
