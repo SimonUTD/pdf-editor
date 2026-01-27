@@ -127,4 +127,67 @@ export class PDFEditor {
       targetPdf.addPage(page);
     });
   }
+
+  /**
+   * Inserts an image into a PDF page at the specified position.
+   *
+   * @param pdfDoc - The PDF document to modify
+   * @param pageIndex - Zero-based index of the page to insert image on
+   * @param imageBytes - The image file content as Uint8Array
+   * @param imageType - Type of image ('png' or 'jpg')
+   * @param x - X coordinate for image placement (in points)
+   * @param y - Y coordinate for image placement (in points)
+   * @param width - Image width (in points, default: 200)
+   * @param height - Image height (in points, default: 200)
+   * @throws Error if pageIndex is out of bounds or image embedding fails
+   */
+  static async insertImage(
+    pdfDoc: PDFDocument,
+    pageIndex: number,
+    imageBytes: Uint8Array,
+    imageType: 'png' | 'jpg',
+    x: number,
+    y: number,
+    width: number = 200,
+    height: number = 200
+  ): Promise<void> {
+    const pageCount = pdfDoc.getPageCount();
+
+    if (pageIndex < 0 || pageIndex >= pageCount) {
+      throw new Error(
+        `Invalid pageIndex: ${pageIndex}. Must be between 0 and ${pageCount - 1}`
+      );
+    }
+
+    if (width <= 0 || height <= 0) {
+      throw new Error(
+        `Invalid dimensions: width (${width}) and height (${height}) must be positive`
+      );
+    }
+
+    if (!imageBytes || imageBytes.length === 0) {
+      throw new Error('Invalid input: imageBytes cannot be empty');
+    }
+
+    const page = pdfDoc.getPage(pageIndex);
+    const pageHeight = page.getHeight();
+
+    // Embed the image based on type
+    let image;
+    if (imageType === 'png') {
+      image = await pdfDoc.embedPng(imageBytes);
+    } else if (imageType === 'jpg') {
+      image = await pdfDoc.embedJpg(imageBytes);
+    } else {
+      throw new Error(`Unsupported image type: ${imageType}`);
+    }
+
+    // Draw image at specified position (convert y to PDF coordinate system)
+    page.drawImage(image, {
+      x,
+      y: pageHeight - y - height, // PDF coordinates start from bottom-left
+      width,
+      height,
+    });
+  }
 }
