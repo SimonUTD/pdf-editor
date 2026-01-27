@@ -19,6 +19,13 @@ A cross-platform desktop PDF editor built with Electron, React, and TypeScript.
 - ✅ Unsaved changes tracking
 - ✅ Keyboard shortcuts (Ctrl/Cmd+S, Ctrl/Cmd+P, etc.)
 
+### Phase 3: Advanced Editing ✅
+- ✅ Insert images (PNG/JPG) with free positioning
+- ✅ Insert text with free positioning and styling
+- ✅ Export to Word (.docx)
+- ✅ Export to plain text (.txt)
+- ✅ Export pages as images (PNG)
+
 ## Tech Stack
 
 - **Electron** - Desktop application framework
@@ -27,8 +34,10 @@ A cross-platform desktop PDF editor built with Electron, React, and TypeScript.
 - **Vite** - Fast build tool
 - **Ant Design** - UI component library
 - **Zustand** - State management
-- **PDF.js** - PDF rendering
+- **PDF.js** - PDF rendering and text extraction
 - **pdf-lib** - PDF manipulation
+- **docx** - Word document generation
+- **file-saver** - File download handling
 
 ## Development
 
@@ -74,7 +83,13 @@ pdf-editor/
 │   └── ipc/          # IPC handlers
 ├── src/              # React application
 │   ├── components/   # React components
+│   │   ├── Layout/   # Layout components
+│   │   ├── PDFViewer/# PDF viewing components
+│   │   └── Editors/  # Editing components
 │   ├── services/     # Business logic
+│   │   ├── pdfRenderer.ts  # PDF.js wrapper
+│   │   ├── pdfEditor.ts    # pdf-lib wrapper
+│   │   └── exportService.ts# Export functionality
 │   ├── stores/       # Zustand stores
 │   ├── hooks/        # Custom React hooks
 │   └── utils/        # Utility functions
@@ -86,8 +101,8 @@ pdf-editor/
 
 - [x] Phase 1: Core Viewer
 - [x] Phase 2: Basic Editing
-- [ ] Phase 3: Advanced Editing
-- [ ] Phase 4: Advanced Features
+- [x] Phase 3: Advanced Editing
+- [ ] Phase 4: Advanced Features (merge, watermarks, headers/footers)
 
 ## License
 
