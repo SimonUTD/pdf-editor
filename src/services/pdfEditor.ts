@@ -1,41 +1,127 @@
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 
+/**
+ * PDFEditor service provides PDF manipulation functionality using pdf-lib.
+ * All methods are static and handle PDF operations like page deletion, insertion, and copying.
+ */
 export class PDFEditor {
+  /**
+   * Loads a PDF document from a Uint8Array of bytes.
+   *
+   * @param bytes - The PDF file content as Uint8Array
+   * @returns Promise resolving to a PDFDocument instance
+   * @throws Error if the bytes cannot be parsed as a valid PDF
+   */
   static async createFromBytes(bytes: Uint8Array): Promise<PDFDocument> {
-    return await PDFDocument.load(bytes);
+    if (!bytes || bytes.length === 0) {
+      throw new Error('Invalid input: bytes cannot be empty');
+    }
+    return PDFDocument.load(bytes);
   }
 
+  /**
+   * Deletes a page from the PDF document at the specified index.
+   *
+   * @param pdfDoc - The PDF document to modify
+   * @param pageIndex - Zero-based index of the page to delete
+   * @throws Error if pageIndex is out of bounds
+   */
   static async deletePage(pdfDoc: PDFDocument, pageIndex: number): Promise<void> {
+    const pageCount = pdfDoc.getPageCount();
+
+    if (pageIndex < 0 || pageIndex >= pageCount) {
+      throw new Error(
+        `Invalid pageIndex: ${pageIndex}. Must be between 0 and ${pageCount - 1}`
+      );
+    }
+
     pdfDoc.removePage(pageIndex);
   }
 
+  /**
+   * Inserts a blank page into the PDF document after the specified index.
+   *
+   * @param pdfDoc - The PDF document to modify
+   * @param afterIndex - Zero-based index after which to insert the page (-1 to insert at beginning)
+   * @param width - Page width in points (default: 595 for A4)
+   * @param height - Page height in points (default: 842 for A4)
+   * @param watermarkText - Optional watermark text to add to the page (default: empty string for no watermark)
+   * @throws Error if afterIndex is out of bounds or dimensions are invalid
+   */
   static async insertBlankPage(
     pdfDoc: PDFDocument,
     afterIndex: number,
     width: number = 595,
-    height: number = 842
+    height: number = 842,
+    watermarkText: string = ''
   ): Promise<void> {
+    const pageCount = pdfDoc.getPageCount();
+
+    if (afterIndex < -1 || afterIndex >= pageCount) {
+      throw new Error(
+        `Invalid afterIndex: ${afterIndex}. Must be between -1 and ${pageCount - 1}`
+      );
+    }
+
+    if (width <= 0 || height <= 0) {
+      throw new Error(
+        `Invalid dimensions: width (${width}) and height (${height}) must be positive`
+      );
+    }
+
     const page = pdfDoc.insertPage(afterIndex + 1, [width, height]);
-    // Optionally add a watermark or grid
-    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    page.drawText('Blank Page', {
-      x: 50,
-      y: height - 50,
-      size: 12,
-      font: font,
-      color: rgb(0.7, 0.7, 0.7),
-    });
+
+    // Add watermark if text is provided
+    if (watermarkText.trim()) {
+      const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+      page.drawText(watermarkText, {
+        x: 50,
+        y: height - 50,
+        size: 12,
+        font: font,
+        color: rgb(0.7, 0.7, 0.7),
+      });
+    }
   }
 
+  /**
+   * Saves the PDF document to a Uint8Array of bytes.
+   *
+   * @param pdfDoc - The PDF document to save
+   * @returns Promise resolving to the PDF content as Uint8Array
+   */
   static async saveToBytes(pdfDoc: PDFDocument): Promise<Uint8Array> {
-    return await pdfDoc.save();
+    return pdfDoc.save();
   }
 
+  /**
+   * Copies specified pages from a source PDF to a target PDF.
+   *
+   * @param sourcePdf - The source PDF document to copy pages from
+   * @param targetPdf - The target PDF document to copy pages to
+   * @param pageIndices - Array of zero-based page indices to copy
+   * @throws Error if any pageIndex is out of bounds in the source PDF
+   */
   static async copyPages(
     sourcePdf: PDFDocument,
     targetPdf: PDFDocument,
     pageIndices: number[]
   ): Promise<void> {
+    if (!pageIndices || pageIndices.length === 0) {
+      throw new Error('Invalid input: pageIndices cannot be empty');
+    }
+
+    const sourcePageCount = sourcePdf.getPageCount();
+
+    // Validate all page indices before copying
+    for (const index of pageIndices) {
+      if (index < 0 || index >= sourcePageCount) {
+        throw new Error(
+          `Invalid pageIndex: ${index}. Must be between 0 and ${sourcePageCount - 1}`
+        );
+      }
+    }
+
     const copiedPages = await targetPdf.copyPages(sourcePdf, pageIndices);
     copiedPages.forEach((page) => {
       targetPdf.addPage(page);
