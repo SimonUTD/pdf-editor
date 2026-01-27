@@ -104,4 +104,55 @@ export class ExportService {
     const extension = format === 'png' ? 'png' : 'jpg';
     saveAs(blob, `${fileName}.${extension}`);
   }
+
+  /**
+   * Extracts text content from a PDF page.
+   *
+   * @param pdfDocument - The PDF document to extract from
+   * @param pageNumber - Page number to extract text from (1-based)
+   * @returns Promise resolving to extracted text
+   */
+  static async extractTextFromPage(
+    pdfDocument: PDFDocumentProxy,
+    pageNumber: number
+  ): Promise<string> {
+    if (pageNumber < 1 || pageNumber > pdfDocument.numPages) {
+      throw new Error(
+        `Invalid page number: ${pageNumber}. Must be between 1 and ${pdfDocument.numPages}`
+      );
+    }
+
+    const page = await pdfDocument.getPage(pageNumber);
+    const textContent = await page.getTextContent();
+
+    // Combine text items into a single string
+    const text = textContent.items
+      .map((item: any) => item.str)
+      .join(' ');
+
+    return text;
+  }
+
+  /**
+   * Exports entire PDF as plain text file.
+   *
+   * @param pdfDocument - The PDF document to export from
+   * @param fileName - File name for the exported text file
+   */
+  static async exportAsText(
+    pdfDocument: PDFDocumentProxy,
+    fileName: string = 'document'
+  ): Promise<void> {
+    const totalPages = pdfDocument.numPages;
+    let fullText = '';
+
+    for (let i = 1; i <= totalPages; i++) {
+      const pageText = await this.extractTextFromPage(pdfDocument, i);
+      fullText += `\n\n--- Page ${i} ---\n\n${pageText}`;
+    }
+
+    // Create blob and download
+    const blob = new Blob([fullText], { type: 'text/plain;charset=utf-8' });
+    saveAs(blob, `${fileName}.txt`);
+  }
 }
