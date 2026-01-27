@@ -46,6 +46,7 @@ export class ExportService {
     await page.render({
       canvasContext: context,
       viewport,
+      canvas,
     }).promise;
 
     // Convert canvas to data URL
