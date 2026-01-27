@@ -35,6 +35,29 @@ type EditAction =
         pageNumber: number;
         imageData?: string;
       };
+    }
+  | {
+      type: 'image-insert';
+      timestamp: number;
+      data: {
+        pageIndex: number;
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+      };
+    }
+  | {
+      type: 'text-insert';
+      timestamp: number;
+      data: {
+        pageIndex: number;
+        text: string;
+        x: number;
+        y: number;
+        fontSize: number;
+        color: { r: number; g: number; b: number };
+      };
     };
 
 interface EditStore {

@@ -12,6 +12,11 @@ interface MainLayoutProps {
   onSave: () => void;
   onSaveAs: () => void;
   onPrint: () => void;
+  onInsertImage: () => void;
+  onInsertText: () => void;
+  onExportAsImages: () => void;
+  onExportAsText: () => void;
+  onExportAsWord: () => void;
   sidebar: React.ReactNode;
   content: React.ReactNode;
 }
@@ -24,6 +29,11 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   onSave,
   onSaveAs,
   onPrint,
+  onInsertImage,
+  onInsertText,
+  onExportAsImages,
+  onExportAsText,
+  onExportAsWord,
   sidebar,
   content,
 }) => {
@@ -34,6 +44,11 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         onSave={onSave}
         onSaveAs={onSaveAs}
         onPrint={onPrint}
+        onInsertImage={onInsertImage}
+        onInsertText={onInsertText}
+        onExportAsImages={onExportAsImages}
+        onExportAsText={onExportAsText}
+        onExportAsWord={onExportAsWord}
         fileName={fileName}
         hasUnsavedChanges={hasUnsavedChanges}
         canSave={canSave}
