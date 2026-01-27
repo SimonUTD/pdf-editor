@@ -1,8 +1,14 @@
 /// <reference types="vite/client" />
 
+interface FileData {
+  filePath: string;
+  buffer: ArrayBuffer;
+  fileName: string;
+}
+
 interface Window {
   electronAPI: {
-    openFile: () => Promise<{ filePath: string; buffer: ArrayBuffer } | null>;
+    openFile: () => Promise<FileData | null>;
     saveFile: (data: ArrayBuffer) => Promise<boolean>;
   };
 }
