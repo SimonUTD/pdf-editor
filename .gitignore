@@ -1,9 +1,28 @@
+# Dependencies
 node_modules
+
+# Build outputs
 dist
 dist-electron
 release
+
+# OS files
 .DS_Store
+Thumbs.db
+
+# Logs
 *.log
+npm-debug.log*
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
 
 # npm (not used)
 package-lock.json
