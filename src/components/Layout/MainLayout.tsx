@@ -6,20 +6,38 @@ const { Sider, Content } = Layout;
 
 interface MainLayoutProps {
   fileName: string | null;
+  hasUnsavedChanges: boolean;
+  canSave: boolean;
   onOpenFile: () => void;
+  onSave: () => void;
+  onSaveAs: () => void;
+  onPrint: () => void;
   sidebar: React.ReactNode;
   content: React.ReactNode;
 }
 
 export const MainLayout: React.FC<MainLayoutProps> = ({
   fileName,
+  hasUnsavedChanges,
+  canSave,
   onOpenFile,
+  onSave,
+  onSaveAs,
+  onPrint,
   sidebar,
   content,
 }) => {
   return (
     <Layout style={{ height: '100vh' }}>
-      <Toolbar onOpenFile={onOpenFile} fileName={fileName} />
+      <Toolbar
+        onOpenFile={onOpenFile}
+        onSave={onSave}
+        onSaveAs={onSaveAs}
+        onPrint={onPrint}
+        fileName={fileName}
+        hasUnsavedChanges={hasUnsavedChanges}
+        canSave={canSave}
+      />
       <Layout>
         <Sider
           width={200}
