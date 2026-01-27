@@ -6,6 +6,7 @@ import { PDFCanvas } from './components/PDFViewer/PDFCanvas';
 import { PDFRenderer } from './services/pdfRenderer';
 import { PDFEditor } from './services/pdfEditor';
 import { usePDFStore, useUIStore, useEditStore } from './stores';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 
 const App: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -172,6 +173,13 @@ const App: React.FC = () => {
       message.error('Failed to insert blank page');
     }
   }, [pdfBytes, filePath, loadPDF, addToHistory, markAsUnsaved]);
+
+  useKeyboardShortcuts({
+    onSave: handleSave,
+    onSaveAs: handleSaveAs,
+    onPrint: handlePrint,
+    onOpen: handleOpenFile,
+  });
 
   const fileName = filePath ? filePath.split('/').pop() || filePath.split('\\').pop() : null;
 
