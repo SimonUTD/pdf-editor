@@ -1,6 +1,7 @@
 import { PDFDocumentProxy } from 'pdfjs-dist';
 import { PDFRenderer } from './pdfRenderer';
 import { saveAs } from 'file-saver';
+import { Document, Packer, Paragraph, TextRun } from 'docx';
 
 /**
  * ExportService provides functionality to export PDF pages to various formats.
@@ -154,5 +155,74 @@ export class ExportService {
     // Create blob and download
     const blob = new Blob([fullText], { type: 'text/plain;charset=utf-8' });
     saveAs(blob, `${fileName}.txt`);
+  }
+
+  /**
+   * Exports PDF as Word document (.docx).
+   *
+   * @param pdfDocument - The PDF document to export from
+   * @param fileName - File name for the exported Word document
+   */
+  static async exportAsWord(
+    pdfDocument: PDFDocumentProxy,
+    fileName: string = 'document'
+  ): Promise<void> {
+    const totalPages = pdfDocument.numPages;
+    const paragraphs: Paragraph[] = [];
+
+    // Extract text from all pages
+    for (let i = 1; i <= totalPages; i++) {
+      const pageText = await this.extractTextFromPage(pdfDocument, i);
+
+      // Add page header
+      paragraphs.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: `Page ${i}`,
+              bold: true,
+              size: 24,
+            }),
+          ],
+          spacing: {
+            before: 200,
+            after: 100,
+          },
+        })
+      );
+
+      // Split text into paragraphs (by line breaks or periods)
+      const lines = pageText.split(/\n+/).filter(line => line.trim().length > 0);
+
+      lines.forEach(line => {
+        paragraphs.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: line.trim(),
+                size: 22,
+              }),
+            ],
+            spacing: {
+              after: 100,
+            },
+          })
+        );
+      });
+    }
+
+    // Create Word document
+    const doc = new Document({
+      sections: [
+        {
+          properties: {},
+          children: paragraphs,
+        },
+      ],
+    });
+
+    // Generate and download
+    const blob = await Packer.toBlob(doc);
+    saveAs(blob, `${fileName}.docx`);
   }
 }
