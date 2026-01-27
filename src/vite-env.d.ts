@@ -13,11 +13,16 @@ interface SaveResult {
   error?: string;
 }
 
+interface PrintResult {
+  success: boolean;
+  error?: string;
+}
+
 interface Window {
   electronAPI: {
     openFile: () => Promise<FileData | null>;
     saveFile: (filePath: string, data: ArrayBuffer) => Promise<SaveResult>;
     saveFileAs: (data: ArrayBuffer) => Promise<SaveResult>;
-    printPDF: () => Promise<{ success: boolean }>;
+    printPDF: () => Promise<PrintResult>;
   };
 }

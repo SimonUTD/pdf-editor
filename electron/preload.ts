@@ -13,12 +13,17 @@ export interface SaveResult {
   error?: string;
 }
 
+export interface PrintResult {
+  success: boolean;
+  error?: string;
+}
+
 contextBridge.exposeInMainWorld('electronAPI', {
   openFile: (): Promise<FileData | null> => ipcRenderer.invoke('open-file'),
   saveFile: (filePath: string, data: ArrayBuffer): Promise<SaveResult> =>
     ipcRenderer.invoke('save-file', filePath, data),
   saveFileAs: (data: ArrayBuffer): Promise<SaveResult> =>
     ipcRenderer.invoke('save-file-as', data),
-  printPDF: (): Promise<{ success: boolean }> =>
+  printPDF: (): Promise<PrintResult> =>
     ipcRenderer.invoke('print-pdf'),
 });
