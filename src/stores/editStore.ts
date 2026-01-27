@@ -32,7 +32,9 @@ type EditAction =
       type: 'page-replace';
       timestamp: number;
       data: {
-        pageNumber: number;
+        pageNumber?: number;
+        targetPageIndex?: number;
+        sourcePageIndex?: number;
         imageData?: string;
       };
     }
@@ -58,6 +60,62 @@ type EditAction =
         fontSize: number;
         color: { r: number; g: number; b: number };
       };
+    }
+  | {
+      type: 'pdf-merge';
+      timestamp: number;
+      data: {
+        count: number;
+      };
+    }
+  | {
+      type: 'watermark-add';
+      timestamp: number;
+      data: {
+        text?: string;
+        type?: string;
+      };
+    }
+  | {
+      type: 'header-add';
+      timestamp: number;
+      data: {
+        text: string;
+      };
+    }
+  | {
+      type: 'footer-add';
+      timestamp: number;
+      data: {
+        text: string;
+      };
+    }
+  | {
+      type: 'content-erase';
+      timestamp: number;
+      data: {
+        pageIndex: number;
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+      };
+    }
+  | {
+      type: 'highlight-add';
+      timestamp: number;
+      data: {
+        pageIndex: number;
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+      };
+    }
+  | {
+      type: 'pages-reverse';
+      timestamp: number;
+      data: Record<string, never>;
     };
 
 interface EditStore {

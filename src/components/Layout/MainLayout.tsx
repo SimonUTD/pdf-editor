@@ -17,6 +17,13 @@ interface MainLayoutProps {
   onExportAsImages: () => void;
   onExportAsText: () => void;
   onExportAsWord: () => void;
+  onMergePDFs: () => void;
+  onAddWatermark: () => void;
+  onAddHeaderFooter: () => void;
+  onEraseContent: () => void;
+  onAddHighlight: () => void;
+  onReplacePage: () => void;
+  onReversePages: () => void;
   sidebar: React.ReactNode;
   content: React.ReactNode;
 }
@@ -34,6 +41,13 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   onExportAsImages,
   onExportAsText,
   onExportAsWord,
+  onMergePDFs,
+  onAddWatermark,
+  onAddHeaderFooter,
+  onEraseContent,
+  onAddHighlight,
+  onReplacePage,
+  onReversePages,
   sidebar,
   content,
 }) => {
@@ -49,6 +63,13 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         onExportAsImages={onExportAsImages}
         onExportAsText={onExportAsText}
         onExportAsWord={onExportAsWord}
+        onMergePDFs={onMergePDFs}
+        onAddWatermark={onAddWatermark}
+        onAddHeaderFooter={onAddHeaderFooter}
+        onEraseContent={onEraseContent}
+        onAddHighlight={onAddHighlight}
+        onReplacePage={onReplacePage}
+        onReversePages={onReversePages}
         fileName={fileName}
         hasUnsavedChanges={hasUnsavedChanges}
         canSave={canSave}

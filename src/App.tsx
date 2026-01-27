@@ -5,6 +5,12 @@ import { Sidebar } from './components/PDFViewer/Sidebar';
 import { PDFCanvas } from './components/PDFViewer/PDFCanvas';
 import { ImageInserter } from './components/Editors/ImageInserter';
 import { TextInserter } from './components/Editors/TextInserter';
+import { PDFMerger } from './components/Editors/PDFMerger';
+import { WatermarkEditor } from './components/Editors/WatermarkEditor';
+import { HeaderFooterEditor } from './components/Editors/HeaderFooterEditor';
+import { ContentEraser } from './components/Editors/ContentEraser';
+import { HighlightTool } from './components/Editors/HighlightTool';
+import { PageReplacer } from './components/Editors/PageReplacer';
 import { PDFRenderer } from './services/pdfRenderer';
 import { PDFEditor } from './services/pdfEditor';
 import { ExportService } from './services/exportService';
@@ -20,6 +26,12 @@ const App: React.FC = () => {
   const [pdfBytes, setPdfBytes] = useState<Uint8Array | null>(null);
   const [imageInserterVisible, setImageInserterVisible] = useState(false);
   const [textInserterVisible, setTextInserterVisible] = useState(false);
+  const [pdfMergerVisible, setPdfMergerVisible] = useState(false);
+  const [watermarkEditorVisible, setWatermarkEditorVisible] = useState(false);
+  const [headerFooterEditorVisible, setHeaderFooterEditorVisible] = useState(false);
+  const [contentEraserVisible, setContentEraserVisible] = useState(false);
+  const [highlightToolVisible, setHighlightToolVisible] = useState(false);
+  const [pageReplacerVisible, setPageReplacerVisible] = useState(false);
 
   const handleOpenFile = async () => {
     if (hasUnsavedChanges) {
@@ -323,6 +335,169 @@ const App: React.FC = () => {
     }
   }, [pdfDocument, filePath]);
 
+  const handleMergePDFs = useCallback(async (pdfBytesArray: Uint8Array[]) => {
+    try {
+      const mergedBytes = await PDFEditor.mergePDFs(pdfBytesArray);
+      setPdfBytes(mergedBytes);
+      const document = await PDFRenderer.loadDocument(mergedBytes.buffer);
+      loadPDF('merged.pdf', document, document.numPages);
+      addToHistory({ type: 'pdf-merge', timestamp: Date.now(), data: { count: pdfBytesArray.length } });
+      markAsUnsaved();
+      message.success('PDFs merged successfully');
+    } catch (error) {
+      console.error('Error merging PDFs:', error);
+      message.error('Failed to merge PDFs');
+      throw error;
+    }
+  }, [loadPDF, addToHistory, markAsUnsaved]);
+
+  const handleAddTextWatermark = useCallback(async (text: string, options: any) => {
+    if (!pdfBytes) return;
+    try {
+      const pdfDoc = await PDFEditor.createFromBytes(pdfBytes);
+      await PDFEditor.addTextWatermark(pdfDoc, text, options);
+      const newBytes = await PDFEditor.saveToBytes(pdfDoc);
+      setPdfBytes(newBytes);
+      const document = await PDFRenderer.loadDocument(newBytes.buffer);
+      loadPDF(filePath || '', document, document.numPages);
+      addToHistory({ type: 'watermark-add', timestamp: Date.now(), data: { text } });
+      markAsUnsaved();
+    } catch (error) {
+      console.error('Error adding watermark:', error);
+      throw error;
+    }
+  }, [pdfBytes, filePath, loadPDF, addToHistory, markAsUnsaved]);
+
+  const handleAddImageWatermark = useCallback(async (imageBytes: Uint8Array, imageType: 'png' | 'jpg', options: any) => {
+    if (!pdfBytes) return;
+    try {
+      const pdfDoc = await PDFEditor.createFromBytes(pdfBytes);
+      await PDFEditor.addImageWatermark(pdfDoc, imageBytes, imageType, options);
+      const newBytes = await PDFEditor.saveToBytes(pdfDoc);
+      setPdfBytes(newBytes);
+      const document = await PDFRenderer.loadDocument(newBytes.buffer);
+      loadPDF(filePath || '', document, document.numPages);
+      addToHistory({ type: 'watermark-add', timestamp: Date.now(), data: { type: 'image' } });
+      markAsUnsaved();
+    } catch (error) {
+      console.error('Error adding image watermark:', error);
+      throw error;
+    }
+  }, [pdfBytes, filePath, loadPDF, addToHistory, markAsUnsaved]);
+
+  const handleAddHeader = useCallback(async (text: string, options: any) => {
+    if (!pdfBytes) return;
+    try {
+      const pdfDoc = await PDFEditor.createFromBytes(pdfBytes);
+      await PDFEditor.addHeader(pdfDoc, text, options);
+      const newBytes = await PDFEditor.saveToBytes(pdfDoc);
+      setPdfBytes(newBytes);
+      const document = await PDFRenderer.loadDocument(newBytes.buffer);
+      loadPDF(filePath || '', document, document.numPages);
+      addToHistory({ type: 'header-add', timestamp: Date.now(), data: { text } });
+      markAsUnsaved();
+    } catch (error) {
+      console.error('Error adding header:', error);
+      throw error;
+    }
+  }, [pdfBytes, filePath, loadPDF, addToHistory, markAsUnsaved]);
+
+  const handleAddFooter = useCallback(async (text: string, options: any) => {
+    if (!pdfBytes) return;
+    try {
+      const pdfDoc = await PDFEditor.createFromBytes(pdfBytes);
+      await PDFEditor.addFooter(pdfDoc, text, options);
+      const newBytes = await PDFEditor.saveToBytes(pdfDoc);
+      setPdfBytes(newBytes);
+      const document = await PDFRenderer.loadDocument(newBytes.buffer);
+      loadPDF(filePath || '', document, document.numPages);
+      addToHistory({ type: 'footer-add', timestamp: Date.now(), data: { text } });
+      markAsUnsaved();
+    } catch (error) {
+      console.error('Error adding footer:', error);
+      throw error;
+    }
+  }, [pdfBytes, filePath, loadPDF, addToHistory, markAsUnsaved]);
+
+  const handleEraseContent = useCallback(async (x: number, y: number, width: number, height: number) => {
+    if (!pdfBytes) return;
+    try {
+      const pdfDoc = await PDFEditor.createFromBytes(pdfBytes);
+      await PDFEditor.eraseRegion(pdfDoc, selectedPageIndex, x, y, width, height);
+      const newBytes = await PDFEditor.saveToBytes(pdfDoc);
+      setPdfBytes(newBytes);
+      const document = await PDFRenderer.loadDocument(newBytes.buffer);
+      loadPDF(filePath || '', document, document.numPages);
+      addToHistory({ type: 'content-erase', timestamp: Date.now(), data: { pageIndex: selectedPageIndex, x, y, width, height } });
+      markAsUnsaved();
+    } catch (error) {
+      console.error('Error erasing content:', error);
+      throw error;
+    }
+  }, [pdfBytes, selectedPageIndex, filePath, loadPDF, addToHistory, markAsUnsaved]);
+
+  const handleAddHighlight = useCallback(async (x: number, y: number, width: number, height: number, color: any, opacity: number) => {
+    if (!pdfBytes) return;
+    try {
+      const pdfDoc = await PDFEditor.createFromBytes(pdfBytes);
+      await PDFEditor.addHighlight(pdfDoc, selectedPageIndex, x, y, width, height, color, opacity);
+      const newBytes = await PDFEditor.saveToBytes(pdfDoc);
+      setPdfBytes(newBytes);
+      const document = await PDFRenderer.loadDocument(newBytes.buffer);
+      loadPDF(filePath || '', document, document.numPages);
+      addToHistory({ type: 'highlight-add', timestamp: Date.now(), data: { pageIndex: selectedPageIndex, x, y, width, height } });
+      markAsUnsaved();
+    } catch (error) {
+      console.error('Error adding highlight:', error);
+      throw error;
+    }
+  }, [pdfBytes, selectedPageIndex, filePath, loadPDF, addToHistory, markAsUnsaved]);
+
+  const handleReplacePage = useCallback(async (sourcePdfBytes: Uint8Array, sourcePageIndex: number) => {
+    if (!pdfBytes) return;
+    try {
+      const pdfDoc = await PDFEditor.createFromBytes(pdfBytes);
+      await PDFEditor.replacePage(pdfDoc, selectedPageIndex, sourcePdfBytes, sourcePageIndex);
+      const newBytes = await PDFEditor.saveToBytes(pdfDoc);
+      setPdfBytes(newBytes);
+      const document = await PDFRenderer.loadDocument(newBytes.buffer);
+      loadPDF(filePath || '', document, document.numPages);
+      addToHistory({
+        type: 'page-replace',
+        timestamp: Date.now(),
+        data: { targetPageIndex: selectedPageIndex, sourcePageIndex },
+      });
+      markAsUnsaved();
+    } catch (error) {
+      console.error('Error replacing page:', error);
+      throw error;
+    }
+  }, [pdfBytes, selectedPageIndex, filePath, loadPDF, addToHistory, markAsUnsaved]);
+
+  const handleReversePages = useCallback(async () => {
+    if (!pdfBytes) return;
+    Modal.confirm({
+      title: 'Reverse Page Order',
+      content: 'Are you sure you want to reverse the order of all pages?',
+      onOk: async () => {
+        try {
+          const pdfDoc = await PDFEditor.createFromBytes(pdfBytes);
+          await PDFEditor.reversePages(pdfDoc);
+          const newBytes = await PDFEditor.saveToBytes(pdfDoc);
+          setPdfBytes(newBytes);
+          const document = await PDFRenderer.loadDocument(newBytes.buffer);
+          loadPDF(filePath || '', document, document.numPages);
+          addToHistory({ type: 'pages-reverse', timestamp: Date.now(), data: {} });
+          markAsUnsaved();
+          message.success('Pages reversed successfully');
+        } catch (error) {
+          console.error('Error reversing pages:', error);
+          message.error('Failed to reverse pages');
+        }
+      },
+    });
+  }, [pdfBytes, filePath, loadPDF, addToHistory, markAsUnsaved]);
+
   useKeyboardShortcuts({
     onSave: handleSave,
     onSaveAs: handleSaveAs,
@@ -351,6 +526,13 @@ const App: React.FC = () => {
         onExportAsImages={handleExportAsImages}
         onExportAsText={handleExportAsText}
         onExportAsWord={handleExportAsWord}
+        onMergePDFs={() => setPdfMergerVisible(true)}
+        onAddWatermark={() => setWatermarkEditorVisible(true)}
+        onAddHeaderFooter={() => setHeaderFooterEditorVisible(true)}
+        onEraseContent={() => setContentEraserVisible(true)}
+        onAddHighlight={() => setHighlightToolVisible(true)}
+        onReplacePage={() => setPageReplacerVisible(true)}
+        onReversePages={handleReversePages}
         sidebar={
           <Sidebar
             pdfDocument={pdfDocument}
@@ -384,6 +566,45 @@ const App: React.FC = () => {
         visible={textInserterVisible}
         onClose={() => setTextInserterVisible(false)}
         onInsert={handleInsertText}
+      />
+
+      <PDFMerger
+        visible={pdfMergerVisible}
+        onClose={() => setPdfMergerVisible(false)}
+        onMerge={handleMergePDFs}
+      />
+
+      <WatermarkEditor
+        visible={watermarkEditorVisible}
+        onClose={() => setWatermarkEditorVisible(false)}
+        onAddTextWatermark={handleAddTextWatermark}
+        onAddImageWatermark={handleAddImageWatermark}
+      />
+
+      <HeaderFooterEditor
+        visible={headerFooterEditorVisible}
+        onClose={() => setHeaderFooterEditorVisible(false)}
+        onAddHeader={handleAddHeader}
+        onAddFooter={handleAddFooter}
+      />
+
+      <ContentEraser
+        visible={contentEraserVisible}
+        onClose={() => setContentEraserVisible(false)}
+        onErase={handleEraseContent}
+      />
+
+      <HighlightTool
+        visible={highlightToolVisible}
+        onClose={() => setHighlightToolVisible(false)}
+        onHighlight={handleAddHighlight}
+      />
+
+      <PageReplacer
+        visible={pageReplacerVisible}
+        currentPageNumber={selectedPageIndex + 1}
+        onClose={() => setPageReplacerVisible(false)}
+        onReplace={handleReplacePage}
       />
     </ConfigProvider>
   );
