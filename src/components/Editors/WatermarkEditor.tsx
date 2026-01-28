@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Modal, Button, Input, InputNumber, Space, Radio, Upload, ColorPicker, message } from 'antd';
 import { FontSizeOutlined, PictureOutlined, UploadOutlined } from '@ant-design/icons';
 import type { Color } from 'antd/es/color-picker';
+import { getMessage } from '@/constants/messages';
 
 interface WatermarkEditorProps {
   visible: boolean;
@@ -74,7 +75,7 @@ export const WatermarkEditor: React.FC<WatermarkEditorProps> = ({
 
       if (watermarkType === 'text') {
         if (!text || text.trim().length === 0) {
-          message.error('Please enter watermark text');
+          message.error(getMessage('Please enter watermark text'));
           return;
         }
 
@@ -89,16 +90,16 @@ export const WatermarkEditor: React.FC<WatermarkEditorProps> = ({
           position: textPosition,
         });
 
-        message.success('Text watermark added successfully');
+        message.success(getMessage('Text watermark added successfully'));
       } else {
         if (!imageFile) {
-          message.error('Please select an image file');
+          message.error(getMessage('Please select a watermark image file'));
           return;
         }
 
         const fileType = imageFile.type;
         if (!fileType.includes('png') && !fileType.includes('jpeg') && !fileType.includes('jpg')) {
-          message.error('Only PNG and JPG images are supported');
+          message.error(getMessage('Only PNG and JPG images are supported'));
           return;
         }
 
@@ -113,13 +114,13 @@ export const WatermarkEditor: React.FC<WatermarkEditorProps> = ({
           position: imagePosition,
         });
 
-        message.success('Image watermark added successfully');
+        message.success(getMessage('Image watermark added successfully'));
       }
 
       handleClose();
     } catch (error) {
       console.error('Error adding watermark:', error);
-      message.error('Failed to add watermark');
+      message.error(getMessage('Failed to add watermark'));
     } finally {
       setLoading(false);
     }
@@ -142,26 +143,28 @@ export const WatermarkEditor: React.FC<WatermarkEditorProps> = ({
 
   return (
     <Modal
-      title="Add Watermark"
+      title={getMessage('Add Watermark')}
       open={visible}
       onCancel={handleClose}
       onOk={handleAdd}
+      okText={getMessage('Confirm')}
+      cancelText={getMessage('Cancel')}
       confirmLoading={loading}
       width={600}
     >
       <Space direction="vertical" style={{ width: '100%' }} size="large">
         <div>
-          <strong>Watermark Type:</strong>
+          <strong>{getMessage('Watermark Type:')}</strong>
           <Radio.Group
             value={watermarkType}
             onChange={(e) => setWatermarkType(e.target.value)}
             style={{ marginTop: 8, display: 'block' }}
           >
             <Radio value="text">
-              <FontSizeOutlined /> Text Watermark
+              <FontSizeOutlined /> {getMessage('Text Watermark')}
             </Radio>
             <Radio value="image">
-              <PictureOutlined /> Image Watermark
+              <PictureOutlined /> {getMessage('Image Watermark')}
             </Radio>
           </Radio.Group>
         </div>
@@ -169,17 +172,17 @@ export const WatermarkEditor: React.FC<WatermarkEditorProps> = ({
         {watermarkType === 'text' ? (
           <>
             <div>
-              <strong>Watermark Text:</strong>
+              <strong>{getMessage('Watermark Text:')}</strong>
               <Input
                 value={text}
                 onChange={(e) => setText(e.target.value)}
-                placeholder="Enter watermark text..."
+                placeholder={getMessage('Enter watermark text...')}
                 style={{ marginTop: 8 }}
               />
             </div>
 
             <div>
-              <strong>Font Size:</strong>
+              <strong>{getMessage('Font Size:')}</strong>
               <InputNumber
                 min={12}
                 max={120}
@@ -190,7 +193,7 @@ export const WatermarkEditor: React.FC<WatermarkEditorProps> = ({
             </div>
 
             <div>
-              <strong>Opacity:</strong>
+              <strong>{getMessage('Opacity:')}</strong>
               <InputNumber
                 min={0.1}
                 max={1}
@@ -202,7 +205,7 @@ export const WatermarkEditor: React.FC<WatermarkEditorProps> = ({
             </div>
 
             <div>
-              <strong>Rotation (degrees):</strong>
+              <strong>{getMessage('Rotation (degrees):')}</strong>
               <InputNumber
                 min={-180}
                 max={180}
@@ -213,7 +216,7 @@ export const WatermarkEditor: React.FC<WatermarkEditorProps> = ({
             </div>
 
             <div>
-              <strong>Text Color:</strong>
+              <strong>{getMessage('Text Color:')}</strong>
               <ColorPicker
                 value={color}
                 onChange={setColor}
@@ -223,23 +226,23 @@ export const WatermarkEditor: React.FC<WatermarkEditorProps> = ({
             </div>
 
             <div>
-              <strong>Position:</strong>
+              <strong>{getMessage('Position:')}</strong>
               <Radio.Group
                 value={textPosition}
                 onChange={(e) => setTextPosition(e.target.value)}
                 style={{ marginTop: 8, display: 'block' }}
               >
-                <Radio value="diagonal">Diagonal (Center)</Radio>
-                <Radio value="center">Center (Horizontal)</Radio>
-                <Radio value="top">Top</Radio>
-                <Radio value="bottom">Bottom</Radio>
+                <Radio value="diagonal">{getMessage('Diagonal (Center)')}</Radio>
+                <Radio value="center">{getMessage('Center (Horizontal)')}</Radio>
+                <Radio value="top">{getMessage('Top')}</Radio>
+                <Radio value="bottom">{getMessage('Bottom')}</Radio>
               </Radio.Group>
             </div>
           </>
         ) : (
           <>
             <div>
-              <strong>Watermark Image:</strong>
+              <strong>{getMessage('Watermark Image:')}</strong>
               <Upload
                 accept="image/png,image/jpeg,image/jpg"
                 maxCount={1}
@@ -247,19 +250,19 @@ export const WatermarkEditor: React.FC<WatermarkEditorProps> = ({
                 onChange={handleFileChange}
                 style={{ marginTop: 8 }}
               >
-                <Button icon={<UploadOutlined />}>Select Image (PNG/JPG)</Button>
+                <Button icon={<UploadOutlined />}>{getMessage('Select Image (PNG/JPG)')}</Button>
               </Upload>
               {imageFile && (
                 <div style={{ marginTop: 8 }}>
-                  <strong>Selected:</strong> {imageFile.name}
+                  <strong>{getMessage('Selected:')}</strong> {imageFile.name}
                 </div>
               )}
             </div>
 
             <div>
-              <strong>Size:</strong>
+              <strong>{getMessage('Size:')}</strong>
               <Space style={{ marginTop: 8 }}>
-                <span>Width:</span>
+                <span>{getMessage('Width:')}</span>
                 <InputNumber
                   min={50}
                   max={500}
@@ -267,7 +270,7 @@ export const WatermarkEditor: React.FC<WatermarkEditorProps> = ({
                   onChange={(value) => setImageWidth(value || 200)}
                   style={{ width: 100 }}
                 />
-                <span>Height:</span>
+                <span>{getMessage('Height:')}</span>
                 <InputNumber
                   min={50}
                   max={500}
@@ -279,7 +282,7 @@ export const WatermarkEditor: React.FC<WatermarkEditorProps> = ({
             </div>
 
             <div>
-              <strong>Opacity:</strong>
+              <strong>{getMessage('Opacity:')}</strong>
               <InputNumber
                 min={0.1}
                 max={1}
@@ -291,17 +294,17 @@ export const WatermarkEditor: React.FC<WatermarkEditorProps> = ({
             </div>
 
             <div>
-              <strong>Position:</strong>
+              <strong>{getMessage('Position:')}</strong>
               <Radio.Group
                 value={imagePosition}
                 onChange={(e) => setImagePosition(e.target.value)}
                 style={{ marginTop: 8, display: 'block' }}
               >
-                <Radio value="center">Center</Radio>
-                <Radio value="top-left">Top Left</Radio>
-                <Radio value="top-right">Top Right</Radio>
-                <Radio value="bottom-left">Bottom Left</Radio>
-                <Radio value="bottom-right">Bottom Right</Radio>
+                <Radio value="center">{getMessage('Center')}</Radio>
+                <Radio value="top-left">{getMessage('Top Left')}</Radio>
+                <Radio value="top-right">{getMessage('Top Right')}</Radio>
+                <Radio value="bottom-left">{getMessage('Bottom Left')}</Radio>
+                <Radio value="bottom-right">{getMessage('Bottom Right')}</Radio>
               </Radio.Group>
             </div>
           </>

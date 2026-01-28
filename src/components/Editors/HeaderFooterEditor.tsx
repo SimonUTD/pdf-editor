@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Modal, Button, Input, InputNumber, Space, Radio, ColorPicker, message, Tabs } from 'antd';
 import { FontSizeOutlined } from '@ant-design/icons';
 import type { Color } from 'antd/es/color-picker';
+import { getMessage } from '@/constants/messages';
 
 interface HeaderFooterEditorProps {
   visible: boolean;
@@ -58,7 +59,8 @@ export const HeaderFooterEditor: React.FC<HeaderFooterEditorProps> = ({
 
       const text = activeTab === 'header' ? headerText : footerText;
       if (!text || text.trim().length === 0) {
-        message.error(`Please enter ${activeTab} text`);
+        const typeText = activeTab === 'header' ? getMessage('Header') : getMessage('Footer');
+        message.error(getMessage('Please enter {type} text', { type: typeText }));
         return;
       }
 
@@ -72,7 +74,7 @@ export const HeaderFooterEditor: React.FC<HeaderFooterEditorProps> = ({
           alignment,
           marginTop: margin,
         });
-        message.success('Header added successfully');
+        message.success(getMessage('Header added successfully'));
       } else {
         await onAddFooter(text, {
           fontSize,
@@ -80,13 +82,14 @@ export const HeaderFooterEditor: React.FC<HeaderFooterEditorProps> = ({
           alignment,
           marginBottom: margin,
         });
-        message.success('Footer added successfully');
+        message.success(getMessage('Footer added successfully'));
       }
 
       handleClose();
     } catch (error) {
       console.error(`Error adding ${activeTab}:`, error);
-      message.error(`Failed to add ${activeTab}`);
+      const typeText = activeTab === 'header' ? getMessage('Header') : getMessage('Footer');
+      message.error(getMessage('Failed to add {type}', { type: typeText }));
     } finally {
       setLoading(false);
     }
@@ -105,10 +108,12 @@ export const HeaderFooterEditor: React.FC<HeaderFooterEditorProps> = ({
 
   return (
     <Modal
-      title="Add Header/Footer"
+      title={getMessage('Add Header/Footer')}
       open={visible}
       onCancel={handleClose}
       onOk={handleAdd}
+      okText={getMessage('Confirm')}
+      cancelText={getMessage('Cancel')}
       confirmLoading={loading}
       width={600}
     >
@@ -117,13 +122,13 @@ export const HeaderFooterEditor: React.FC<HeaderFooterEditorProps> = ({
           activeKey={activeTab}
           onChange={(key) => setActiveTab(key as 'header' | 'footer')}
           items={[
-            { key: 'header', label: 'Header' },
-            { key: 'footer', label: 'Footer' },
+            { key: 'header', label: getMessage('Header') },
+            { key: 'footer', label: getMessage('Footer') },
           ]}
         />
 
         <div>
-          <strong>{activeTab === 'header' ? 'Header' : 'Footer'} Text:</strong>
+          <strong>{activeTab === 'header' ? getMessage('Header Text:') : getMessage('Footer Text:')}</strong>
           <Input
             value={activeTab === 'header' ? headerText : footerText}
             onChange={(e) =>
@@ -131,16 +136,16 @@ export const HeaderFooterEditor: React.FC<HeaderFooterEditorProps> = ({
                 ? setHeaderText(e.target.value)
                 : setFooterText(e.target.value)
             }
-            placeholder="Use {page} for page number, {total} for total pages"
+            placeholder={getMessage('Use {page} for page number, {total} for total pages')}
             style={{ marginTop: 8 }}
           />
           <div style={{ marginTop: 4, fontSize: 12, color: '#888' }}>
-            Tip: Use {'{page}'} for page number and {'{total}'} for total pages
+            {getMessage('Tip: Use {page} for page number and {total} for total pages')}
           </div>
         </div>
 
         <div>
-          <strong>Font Size:</strong>
+          <strong>{getMessage('Font Size:')}</strong>
           <InputNumber
             min={6}
             max={24}
@@ -151,7 +156,7 @@ export const HeaderFooterEditor: React.FC<HeaderFooterEditorProps> = ({
         </div>
 
         <div>
-          <strong>Text Color:</strong>
+          <strong>{getMessage('Text Color:')}</strong>
           <ColorPicker
             value={color}
             onChange={setColor}
@@ -161,20 +166,20 @@ export const HeaderFooterEditor: React.FC<HeaderFooterEditorProps> = ({
         </div>
 
         <div>
-          <strong>Alignment:</strong>
+          <strong>{getMessage('Alignment:')}</strong>
           <Radio.Group
             value={alignment}
             onChange={(e) => setAlignment(e.target.value)}
             style={{ marginTop: 8, display: 'block' }}
           >
-            <Radio value="left">Left</Radio>
-            <Radio value="center">Center</Radio>
-            <Radio value="right">Right</Radio>
+            <Radio value="left">{getMessage('Left')}</Radio>
+            <Radio value="center">{getMessage('Center')}</Radio>
+            <Radio value="right">{getMessage('Right')}</Radio>
           </Radio.Group>
         </div>
 
         <div>
-          <strong>Margin:</strong>
+          <strong>{getMessage('Margin:')}</strong>
           <InputNumber
             min={10}
             max={100}
@@ -182,7 +187,7 @@ export const HeaderFooterEditor: React.FC<HeaderFooterEditorProps> = ({
             onChange={(value) => setMargin(value || 20)}
             style={{ width: 120, marginLeft: 8 }}
           />
-          <span style={{ marginLeft: 8 }}>points</span>
+          <span style={{ marginLeft: 8 }}>{getMessage('points')}</span>
         </div>
       </Space>
     </Modal>

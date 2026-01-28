@@ -1,26 +1,28 @@
 import React, { useState, useCallback } from 'react';
 import { ConfigProvider, theme, Empty, message, Modal } from 'antd';
+import zhCN from 'antd/locale/zh_CN';
 import { MainLayout } from './components/Layout/MainLayout';
 import { Sidebar } from './components/PDFViewer/Sidebar';
-import { PDFCanvas } from './components/PDFViewer/PDFCanvas';
+import { PDFCanvas } from './components/PDFViewer/PDFCanvasInteractive';
 import { ImageInserter } from './components/Editors/ImageInserter';
 import { TextInserter } from './components/Editors/TextInserter';
 import { PDFMerger } from './components/Editors/PDFMerger';
 import { WatermarkEditor } from './components/Editors/WatermarkEditor';
 import { HeaderFooterEditor } from './components/Editors/HeaderFooterEditor';
-import { ContentEraser } from './components/Editors/ContentEraser';
-import { HighlightTool } from './components/Editors/HighlightTool';
 import { PageReplacer } from './components/Editors/PageReplacer';
 import { PDFRenderer } from './services/pdfRenderer';
 import { PDFEditor } from './services/pdfEditor';
 import { ExportService } from './services/exportService';
 import { usePDFStore, useUIStore, useEditStore } from './stores';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import { useI18n } from './hooks/useI18n';
 import { getArrayBuffer } from './utils/arrayBuffer';
+import { getMessage } from './constants/messages';
 
 const App: React.FC = () => {
+  const { t } = useI18n();
   const { pdfDocument, filePath, totalPages, loadPDF } = usePDFStore();
-  const { selectedPageIndex, selectPage } = useUIStore();
+  const { selectedPageIndex, selectPage, toolMode, setToolMode } = useUIStore();
   const { hasUnsavedChanges, markAsSaved, markAsUnsaved, addToHistory } = useEditStore();
 
   const [pdfBytes, setPdfBytes] = useState<Uint8Array | null>(null);
@@ -29,15 +31,15 @@ const App: React.FC = () => {
   const [pdfMergerVisible, setPdfMergerVisible] = useState(false);
   const [watermarkEditorVisible, setWatermarkEditorVisible] = useState(false);
   const [headerFooterEditorVisible, setHeaderFooterEditorVisible] = useState(false);
-  const [contentEraserVisible, setContentEraserVisible] = useState(false);
-  const [highlightToolVisible, setHighlightToolVisible] = useState(false);
   const [pageReplacerVisible, setPageReplacerVisible] = useState(false);
 
   const handleOpenFile = async () => {
     if (hasUnsavedChanges) {
       Modal.confirm({
-        title: 'Unsaved Changes',
-        content: 'You have unsaved changes. Do you want to continue?',
+        title: getMessage('Unsaved Changes'),
+        content: getMessage('You have unsaved changes. Do you want to continue?'),
+        okText: getMessage('Confirm'),
+        cancelText: getMessage('Cancel'),
         onOk: async () => {
           await loadFile();
         },
@@ -61,16 +63,19 @@ const App: React.FC = () => {
       loadPDF(fileData.filePath, document, numPages);
       setPdfBytes(new Uint8Array(fileData.buffer));
       markAsSaved();
-      message.success(`Loaded ${fileData.fileName} (${numPages} pages)`);
+      message.success(getMessage('Loaded {name} ({pages} pages)', {
+        name: fileData.fileName,
+        pages: numPages
+      }));
     } catch (error) {
       console.error('Error loading PDF:', error);
-      message.error('Failed to load PDF file');
+      message.error(getMessage('Failed to load PDF file'));
     }
   };
 
   const handleSave = async () => {
     if (!pdfBytes || !filePath) {
-      message.error('No file to save');
+      message.error(getMessage('No file to save'));
       return;
     }
 
@@ -78,19 +83,19 @@ const App: React.FC = () => {
       const result = await window.electronAPI.saveFile(filePath, getArrayBuffer(pdfBytes));
       if (result.success) {
         markAsSaved();
-        message.success('File saved successfully');
+        message.success(getMessage('File saved successfully'));
       } else {
-        message.error(`Failed to save: ${result.error}`);
+        message.error(getMessage('Failed to save: {error}', { error: result.error || 'Unknown error' }));
       }
     } catch (error) {
       console.error('Error saving PDF:', error);
-      message.error('Failed to save PDF file');
+      message.error(getMessage('Failed to save PDF file'));
     }
   };
 
   const handleSaveAs = async () => {
     if (!pdfBytes) {
-      message.error('No file to save');
+      message.error(getMessage('No file to save'));
       return;
     }
 
@@ -99,13 +104,13 @@ const App: React.FC = () => {
       if (result.success && result.filePath) {
         loadPDF(result.filePath, pdfDocument, totalPages);
         markAsSaved();
-        message.success('File saved successfully');
+        message.success(getMessage('File saved successfully'));
       } else if (!result.canceled) {
-        message.error(`Failed to save: ${result.error}`);
+        message.error(getMessage('Failed to save: {error}', { error: result.error || 'Unknown error' }));
       }
     } catch (error) {
       console.error('Error saving PDF:', error);
-      message.error('Failed to save PDF file');
+      message.error(getMessage('Failed to save PDF file'));
     }
   };
 
@@ -114,19 +119,21 @@ const App: React.FC = () => {
       await window.electronAPI.printPDF();
     } catch (error) {
       console.error('Error printing PDF:', error);
-      message.error('Failed to print PDF');
+      message.error(getMessage('Failed to print PDF'));
     }
   };
 
   const handleDeletePage = useCallback(async (pageNumber: number) => {
     if (!pdfBytes || totalPages <= 1) {
-      message.warning('Cannot delete the last page');
+      message.warning(getMessage('Cannot delete the last page'));
       return;
     }
 
     Modal.confirm({
-      title: 'Delete Page',
-      content: `Are you sure you want to delete page ${pageNumber}?`,
+      title: getMessage('Delete Page'),
+      content: getMessage('Are you sure you want to delete page {pageNumber}?', { pageNumber }),
+      okText: getMessage('Confirm'),
+      cancelText: getMessage('Cancel'),
       onOk: async () => {
         try {
           const pdfDoc = await PDFEditor.createFromBytes(pdfBytes);
@@ -149,10 +156,10 @@ const App: React.FC = () => {
             selectPage(document.numPages - 1);
           }
 
-          message.success(`Page ${pageNumber} deleted`);
+          message.success(getMessage('Page {pageNumber} deleted', { pageNumber }));
         } catch (error) {
           console.error('Error deleting page:', error);
-          message.error('Failed to delete page');
+          message.error(getMessage('Failed to delete page'));
         }
       },
     });
@@ -160,7 +167,7 @@ const App: React.FC = () => {
 
   const handleInsertBlankPage = useCallback(async (afterPageNumber: number) => {
     if (!pdfBytes) {
-      message.error('No PDF loaded');
+      message.error(getMessage('No PDF loaded'));
       return;
     }
 
@@ -180,10 +187,10 @@ const App: React.FC = () => {
       });
       markAsUnsaved();
 
-      message.success(`Blank page inserted after page ${afterPageNumber}`);
+      message.success(getMessage('Blank page inserted after page {afterPageNumber}', { afterPageNumber }));
     } catch (error) {
       console.error('Error inserting blank page:', error);
-      message.error('Failed to insert blank page');
+      message.error(getMessage('Failed to insert blank page'));
     }
   }, [pdfBytes, filePath, loadPDF, addToHistory, markAsUnsaved]);
 
@@ -197,7 +204,7 @@ const App: React.FC = () => {
       height: number
     ) => {
       if (!pdfBytes) {
-        message.error('No PDF loaded');
+        message.error(getMessage('No PDF loaded'));
         return;
       }
 
@@ -226,10 +233,10 @@ const App: React.FC = () => {
         });
         markAsUnsaved();
 
-        message.success('Image inserted successfully');
+        message.success(getMessage('Image inserted successfully'));
       } catch (error) {
         console.error('Error inserting image:', error);
-        message.error('Failed to insert image');
+        message.error(getMessage('Failed to insert image'));
         throw error;
       }
     },
@@ -245,7 +252,7 @@ const App: React.FC = () => {
       color: { r: number; g: number; b: number }
     ) => {
       if (!pdfBytes) {
-        message.error('No PDF loaded');
+        message.error(getMessage('No PDF loaded'));
         return;
       }
 
@@ -273,10 +280,10 @@ const App: React.FC = () => {
         });
         markAsUnsaved();
 
-        message.success('Text inserted successfully');
+        message.success(getMessage('Text inserted successfully'));
       } catch (error) {
         console.error('Error inserting text:', error);
-        message.error('Failed to insert text');
+        message.error(getMessage('Failed to insert text'));
         throw error;
       }
     },
@@ -285,49 +292,49 @@ const App: React.FC = () => {
 
   const handleExportAsImages = useCallback(async () => {
     if (!pdfDocument) {
-      message.error('No PDF loaded');
+      message.error(getMessage('No PDF loaded'));
       return;
     }
 
     try {
       const fileName = filePath ? filePath.split('/').pop()?.replace('.pdf', '') || 'page' : 'page';
       await ExportService.exportAllPagesAsImages(pdfDocument, 'png', fileName);
-      message.success(`Exported ${totalPages} pages as images`);
+      message.success(getMessage('Exported {totalPages} pages as images', { totalPages }));
     } catch (error) {
       console.error('Error exporting as images:', error);
-      message.error('Failed to export as images');
+      message.error(getMessage('Failed to export as images'));
     }
   }, [pdfDocument, filePath, totalPages]);
 
   const handleExportAsText = useCallback(async () => {
     if (!pdfDocument) {
-      message.error('No PDF loaded');
+      message.error(getMessage('No PDF loaded'));
       return;
     }
 
     try {
       const fileName = filePath ? filePath.split('/').pop()?.replace('.pdf', '') || 'document' : 'document';
       await ExportService.exportAsText(pdfDocument, fileName);
-      message.success('Exported as text file');
+      message.success(getMessage('Exported as text file'));
     } catch (error) {
       console.error('Error exporting as text:', error);
-      message.error('Failed to export as text');
+      message.error(getMessage('Failed to export as text'));
     }
   }, [pdfDocument, filePath]);
 
   const handleExportAsWord = useCallback(async () => {
     if (!pdfDocument) {
-      message.error('No PDF loaded');
+      message.error(getMessage('No PDF loaded'));
       return;
     }
 
     try {
       const fileName = filePath ? filePath.split('/').pop()?.replace('.pdf', '') || 'document' : 'document';
       await ExportService.exportAsWord(pdfDocument, fileName);
-      message.success('Exported as Word document');
+      message.success(getMessage('Exported as Word document'));
     } catch (error) {
       console.error('Error exporting as Word:', error);
-      message.error('Failed to export as Word');
+      message.error(getMessage('Failed to export as Word'));
     }
   }, [pdfDocument, filePath]);
 
@@ -339,10 +346,10 @@ const App: React.FC = () => {
       loadPDF('merged.pdf', document, document.numPages);
       addToHistory({ type: 'pdf-merge', timestamp: Date.now(), data: { count: pdfBytesArray.length } });
       markAsUnsaved();
-      message.success('PDFs merged successfully');
+      message.success(getMessage('PDFs merged successfully'));
     } catch (error) {
       console.error('Error merging PDFs:', error);
-      message.error('Failed to merge PDFs');
+      message.error(getMessage('Failed to merge PDFs'));
       throw error;
     }
   }, [loadPDF, addToHistory, markAsUnsaved]);
@@ -432,10 +439,13 @@ const App: React.FC = () => {
     }
   }, [pdfBytes, selectedPageIndex, filePath, loadPDF, addToHistory, markAsUnsaved]);
 
-  const handleAddHighlight = useCallback(async (x: number, y: number, width: number, height: number, color: any, opacity: number) => {
+  const handleAddHighlight = useCallback(async (x: number, y: number, width: number, height: number) => {
     if (!pdfBytes) return;
     try {
       const pdfDoc = await PDFEditor.createFromBytes(pdfBytes);
+      // 默认黄色高亮，透明度0.3
+      const color = { r: 1, g: 1, b: 0 };
+      const opacity = 0.3;
       await PDFEditor.addHighlight(pdfDoc, selectedPageIndex, x, y, width, height, color, opacity);
       const newBytes = await PDFEditor.saveToBytes(pdfDoc);
       setPdfBytes(newBytes);
@@ -473,8 +483,10 @@ const App: React.FC = () => {
   const handleReversePages = useCallback(async () => {
     if (!pdfBytes) return;
     Modal.confirm({
-      title: 'Reverse Page Order',
-      content: 'Are you sure you want to reverse the order of all pages?',
+      title: getMessage('Reverse Page Order'),
+      content: getMessage('Are you sure you want to reverse the order of all pages?'),
+      okText: getMessage('Confirm'),
+      cancelText: getMessage('Cancel'),
       onOk: async () => {
         try {
           const pdfDoc = await PDFEditor.createFromBytes(pdfBytes);
@@ -485,10 +497,10 @@ const App: React.FC = () => {
           loadPDF(filePath || '', document, document.numPages);
           addToHistory({ type: 'pages-reverse', timestamp: Date.now(), data: {} });
           markAsUnsaved();
-          message.success('Pages reversed successfully');
+          message.success(getMessage('Pages reversed successfully'));
         } catch (error) {
           console.error('Error reversing pages:', error);
-          message.error('Failed to reverse pages');
+          message.error(getMessage('Failed to reverse pages'));
         }
       },
     });
@@ -505,6 +517,7 @@ const App: React.FC = () => {
 
   return (
     <ConfigProvider
+      locale={zhCN}
       theme={{
         algorithm: theme.defaultAlgorithm,
       }}
@@ -525,8 +538,6 @@ const App: React.FC = () => {
         onMergePDFs={() => setPdfMergerVisible(true)}
         onAddWatermark={() => setWatermarkEditorVisible(true)}
         onAddHeaderFooter={() => setHeaderFooterEditorVisible(true)}
-        onEraseContent={() => setContentEraserVisible(true)}
-        onAddHighlight={() => setHighlightToolVisible(true)}
         onReplacePage={() => setPageReplacerVisible(true)}
         onReversePages={handleReversePages}
         sidebar={
@@ -542,10 +553,12 @@ const App: React.FC = () => {
             <PDFCanvas
               pdfDocument={pdfDocument}
               pageNumber={selectedPageIndex + 1}
+              onEraseRegion={handleEraseContent}
+              onHighlightRegion={handleAddHighlight}
             />
           ) : (
             <Empty
-              description="Open a PDF file to get started"
+              description={getMessage('Open a PDF file to get started')}
               style={{ marginTop: 100 }}
             />
           )
@@ -582,18 +595,6 @@ const App: React.FC = () => {
         onClose={() => setHeaderFooterEditorVisible(false)}
         onAddHeader={handleAddHeader}
         onAddFooter={handleAddFooter}
-      />
-
-      <ContentEraser
-        visible={contentEraserVisible}
-        onClose={() => setContentEraserVisible(false)}
-        onErase={handleEraseContent}
-      />
-
-      <HighlightTool
-        visible={highlightToolVisible}
-        onClose={() => setHighlightToolVisible(false)}
-        onHighlight={handleAddHighlight}
       />
 
       <PageReplacer

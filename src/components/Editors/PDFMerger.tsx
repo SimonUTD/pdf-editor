@@ -8,6 +8,7 @@ import {
   MergeCellsOutlined,
 } from '@ant-design/icons';
 import type { UploadFile } from 'antd';
+import { getMessage } from '@/constants/messages';
 
 interface PDFFile {
   id: string;
@@ -33,7 +34,7 @@ export const PDFMerger: React.FC<PDFMergerProps> = ({
     try {
       // Validate PDF file
       if (!file.type.includes('pdf')) {
-        message.error('Only PDF files are supported');
+        message.error(getMessage('Only PDF files are supported'));
         return false;
       }
 
@@ -49,11 +50,11 @@ export const PDFMerger: React.FC<PDFMergerProps> = ({
       };
 
       setPdfFiles(prev => [...prev, newFile]);
-      message.success(`Added ${file.name}`);
+      message.success(getMessage('Added {name}', { name: file.name }));
       return false; // Prevent auto upload
     } catch (error) {
       console.error('Error reading PDF file:', error);
-      message.error('Failed to read PDF file');
+      message.error(getMessage('Failed to read PDF file'));
       return false;
     }
   };
@@ -78,7 +79,7 @@ export const PDFMerger: React.FC<PDFMergerProps> = ({
 
   const handleMerge = async () => {
     if (pdfFiles.length < 2) {
-      message.error('Please add at least 2 PDF files to merge');
+      message.error(getMessage('Please add at least 2 PDF files to merge'));
       return;
     }
 
@@ -86,11 +87,11 @@ export const PDFMerger: React.FC<PDFMergerProps> = ({
       setLoading(true);
       const pdfBytesArray = pdfFiles.map(f => f.bytes);
       await onMerge(pdfBytesArray);
-      message.success('PDFs merged successfully');
+      message.success(getMessage('PDFs merged successfully'));
       handleClose();
     } catch (error) {
       console.error('Error merging PDFs:', error);
-      message.error('Failed to merge PDFs');
+      message.error(getMessage('Failed to merge PDFs'));
     } finally {
       setLoading(false);
     }
@@ -103,13 +104,14 @@ export const PDFMerger: React.FC<PDFMergerProps> = ({
 
   return (
     <Modal
-      title="Merge PDF Files"
+      title={getMessage('Merge PDF Files')}
       open={visible}
       onCancel={handleClose}
       onOk={handleMerge}
+      okText={getMessage('Merge PDFs')}
+      cancelText={getMessage('Cancel')}
       confirmLoading={loading}
       width={600}
-      okText="Merge PDFs"
       okButtonProps={{ disabled: pdfFiles.length < 2 }}
     >
       <Space direction="vertical" style={{ width: '100%' }} size="large">
@@ -119,16 +121,16 @@ export const PDFMerger: React.FC<PDFMergerProps> = ({
           beforeUpload={handleFileUpload}
           showUploadList={false}
         >
-          <Button icon={<UploadOutlined />}>Add PDF Files</Button>
+          <Button icon={<UploadOutlined />}>{getMessage('Add PDF Files')}</Button>
         </Upload>
 
         <div>
-          <strong>Files to merge ({pdfFiles.length}):</strong>
+          <strong>{getMessage('Files to merge ({count}):', { count: pdfFiles.length })}</strong>
           <List
             style={{ marginTop: 8, maxHeight: 400, overflow: 'auto' }}
             bordered
             dataSource={pdfFiles}
-            locale={{ emptyText: 'No PDF files added yet' }}
+            locale={{ emptyText: getMessage('No PDF files added yet') }}
             renderItem={(file, index) => (
               <List.Item
                 actions={[
@@ -163,7 +165,7 @@ export const PDFMerger: React.FC<PDFMergerProps> = ({
 
         {pdfFiles.length >= 2 && (
           <div style={{ color: '#52c41a' }}>
-            Ready to merge {pdfFiles.length} PDF files
+            {getMessage('Ready to merge {count} PDF files', { count: pdfFiles.length })}
           </div>
         )}
       </Space>

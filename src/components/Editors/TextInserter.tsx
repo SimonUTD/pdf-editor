@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Modal, Button, InputNumber, Space, message, Input, ColorPicker } from 'antd';
 import { FontSizeOutlined } from '@ant-design/icons';
 import type { Color } from 'antd/es/color-picker';
+import { getMessage } from '@/constants/messages';
 
 const { TextArea } = Input;
 
@@ -31,7 +32,7 @@ export const TextInserter: React.FC<TextInserterProps> = ({
 
   const handleInsert = async () => {
     if (!text || text.trim().length === 0) {
-      message.error('Please enter text content');
+      message.error(getMessage('Please enter text content'));
       return;
     }
 
@@ -45,11 +46,11 @@ export const TextInserter: React.FC<TextInserterProps> = ({
       // Call insert handler
       await onInsert(text, x, y, fontSize, rgb);
 
-      message.success('Text inserted successfully');
+      message.success(getMessage('Text inserted successfully'));
       handleClose();
     } catch (error) {
       console.error('Error inserting text:', error);
-      message.error('Failed to insert text');
+      message.error(getMessage('Failed to insert text'));
     } finally {
       setLoading(false);
     }
@@ -77,27 +78,29 @@ export const TextInserter: React.FC<TextInserterProps> = ({
 
   return (
     <Modal
-      title="Insert Text"
+      title={getMessage('Insert Text')}
       open={visible}
       onCancel={handleClose}
       onOk={handleInsert}
+      okText={getMessage('Confirm')}
+      cancelText={getMessage('Cancel')}
       confirmLoading={loading}
       width={500}
     >
       <Space direction="vertical" style={{ width: '100%' }} size="large">
         <div>
-          <strong>Text Content:</strong>
+          <strong>{getMessage('Text Content:')}</strong>
           <TextArea
             rows={4}
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="Enter text to insert..."
+            placeholder={getMessage('Enter text to insert...')}
             style={{ marginTop: 8 }}
           />
         </div>
 
         <div>
-          <strong>Position (from top-left):</strong>
+          <strong>{getMessage('Position (from top-left):')}</strong>
           <Space style={{ marginTop: 8 }}>
             <span>X:</span>
             <InputNumber
@@ -119,7 +122,7 @@ export const TextInserter: React.FC<TextInserterProps> = ({
         </div>
 
         <div>
-          <strong>Font Size:</strong>
+          <strong>{getMessage('Font Size:')}</strong>
           <InputNumber
             min={6}
             max={72}
@@ -130,7 +133,7 @@ export const TextInserter: React.FC<TextInserterProps> = ({
         </div>
 
         <div>
-          <strong>Text Color:</strong>
+          <strong>{getMessage('Text Color:')}</strong>
           <ColorPicker
             value={color}
             onChange={setColor}

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Modal, Button, Upload, InputNumber, Space, message, Alert } from 'antd';
 import { UploadOutlined, SwapOutlined } from '@ant-design/icons';
+import { getMessage } from '@/constants/messages';
 
 interface PageReplacerProps {
   visible: boolean;
@@ -21,18 +22,18 @@ export const PageReplacer: React.FC<PageReplacerProps> = ({
 
   const handleFileUpload = async (file: File) => {
     if (!file.type.includes('pdf')) {
-      message.error('Only PDF files are supported');
+      message.error(getMessage('Only PDF files are supported'));
       return false;
     }
 
     setSourcePdfFile(file);
-    message.success(`Selected ${file.name}`);
+    message.success(getMessage('Selected {name}', { name: file.name }));
     return false;
   };
 
   const handleReplace = async () => {
     if (!sourcePdfFile) {
-      message.error('Please select a source PDF file');
+      message.error(getMessage('Please select a source PDF file'));
       return;
     }
 
@@ -43,11 +44,11 @@ export const PageReplacer: React.FC<PageReplacerProps> = ({
       const sourcePdfBytes = new Uint8Array(arrayBuffer);
 
       await onReplace(sourcePdfBytes, sourcePageNumber - 1);
-      message.success(`Page ${currentPageNumber} replaced successfully`);
+      message.success(getMessage('Page {pageNumber} replaced successfully', { pageNumber: currentPageNumber }));
       handleClose();
     } catch (error) {
       console.error('Error replacing page:', error);
-      message.error('Failed to replace page');
+      message.error(getMessage('Failed to replace page'));
     } finally {
       setLoading(false);
     }
@@ -64,26 +65,28 @@ export const PageReplacer: React.FC<PageReplacerProps> = ({
       title={
         <Space>
           <SwapOutlined />
-          Replace Page {currentPageNumber}
+          {getMessage('Replace Page')} {currentPageNumber}
         </Space>
       }
       open={visible}
       onCancel={handleClose}
       onOk={handleReplace}
+      okText={getMessage('Confirm')}
+      cancelText={getMessage('Cancel')}
       confirmLoading={loading}
       width={500}
       okButtonProps={{ disabled: !sourcePdfFile }}
     >
       <Space direction="vertical" style={{ width: '100%' }} size="large">
         <Alert
-          message="Replace Current Page"
-          description={`This will replace page ${currentPageNumber} in the current document with a page from another PDF file.`}
+          message={getMessage('Replace Current Page')}
+          description={getMessage('This will replace page {pageNumber} in the current document with a page from another PDF file.', { pageNumber: currentPageNumber })}
           type="info"
           showIcon
         />
 
         <div>
-          <strong>Source PDF File:</strong>
+          <strong>{getMessage('Source PDF File:')}</strong>
           <Upload
             accept="application/pdf"
             maxCount={1}
@@ -91,17 +94,17 @@ export const PageReplacer: React.FC<PageReplacerProps> = ({
             showUploadList={false}
             style={{ marginTop: 8 }}
           >
-            <Button icon={<UploadOutlined />}>Select PDF File</Button>
+            <Button icon={<UploadOutlined />}>{getMessage('Select PDF File')}</Button>
           </Upload>
           {sourcePdfFile && (
             <div style={{ marginTop: 8 }}>
-              <strong>Selected:</strong> {sourcePdfFile.name}
+              <strong>{getMessage('Selected:')}</strong> {sourcePdfFile.name}
             </div>
           )}
         </div>
 
         <div>
-          <strong>Source Page Number:</strong>
+          <strong>{getMessage('Source Page Number:')}</strong>
           <InputNumber
             min={1}
             value={sourcePageNumber}
