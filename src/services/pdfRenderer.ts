@@ -1,7 +1,10 @@
 import * as pdfjsLib from 'pdfjs-dist';
 
-// Configure PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// Configure PDF.js worker - 使用本地 worker 文件，无需联网
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url
+).toString();
 
 export interface PDFRenderOptions {
   scale?: number;
@@ -57,5 +60,65 @@ export class PDFRenderer {
     }).promise;
 
     return canvas.toDataURL('image/png');
+  }
+
+  static async getTextContent(page: any): Promise<any> {
+    return await page.getTextContent();
+  }
+
+  /**
+   * 渲染文本层到容器
+   * @param page - PDF.js 页面对象
+   * @param viewport - 视口信息
+   * @param container - 容器 DOM 元素
+   * @param scale - 缩放比例
+   * @param textDivs - 文本 DIV 数组
+   */
+  static renderTextLayer(
+    page: any,
+    viewport: any,
+    container: HTMLDivElement,
+    scale: number,
+    textDivs: HTMLDivElement[]
+  ): void {
+    const { textContentItems } = page.getTextContent();
+
+    // 清空容器
+    container.innerHTML = '';
+    textDivs.length = 0;
+
+    // 渲染每个文本项
+    textContentItems.forEach((item: any) => {
+      const textDiv = document.createElement('div');
+      textDiv.className = 'pdf-text-layer-text';
+
+      // 设置样式
+      const tx = pdfjsLib.Util.transform(
+        viewport.transform,
+        item.transform
+      );
+      const fontSize = item.transform[0] * scale;
+      const fontFamily = item.fontName || 'sans-serif';
+
+      textDiv.style.position = 'absolute';
+      textDiv.style.left = `${tx[4]}px`;
+      textDiv.style.top = `${tx[5] - tx[1]}px`; // PDF坐标系转换
+      textDiv.style.fontSize = `${fontSize}px`;
+      textDiv.style.fontFamily = fontFamily;
+      textDiv.style.color = 'transparent';
+      textDiv.style.userSelect = 'text';
+      textDiv.style.cursor = 'text';
+      textDiv.style.whiteSpace = 'pre';
+      textDiv.style.transformOrigin = '0 0';
+      textDiv.style.pointerEvents = 'auto';
+
+      // 添加文本内容
+      const textItem = document.createElement('span');
+      textItem.textContent = item.str;
+      textDiv.appendChild(textItem);
+
+      container.appendChild(textDiv);
+      textDivs.push(textDiv);
+    });
   }
 }

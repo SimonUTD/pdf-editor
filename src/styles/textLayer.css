@@ -1,0 +1,40 @@
+.pdf-text-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  line-height: 1;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+  pointer-events: auto;
+  opacity: 0.2;
+}
+
+.pdf-text-layer-text {
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0 0;
+  pointer-events: auto;
+  color: transparent;
+}
+
+/* 文本选中样式 */
+.pdf-text-layer-text ::selection {
+  background: rgba(255, 235, 59, 0.3);
+  color: transparent;
+}
+
+/* 鼠标悬停时提高不透明度 */
+.pdf-text-layer:hover {
+  opacity: 0.4;
+}
+
+.pdf-text-layer-text:hover::selection {
+  background: rgba(255, 235, 59, 0.4);
+  color: transparent;
+}
