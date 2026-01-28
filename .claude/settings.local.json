@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(claude-code skill list:*)",
+      "Bash(claude-code mcp list:*)",
+      "Bash(git remote add:*)",
+      "Bash(git push:*)",
+      "Bash(npm init -y)",
+      "Bash(npm install react react-dom antd zustand pdfjs-dist pdf-lib)",
+      "Bash(npm install -D electron electron-builder vite @vitejs/plugin-react typescript @types/react @types/react-dom @types/node)",
+      "Bash(npm install -D concurrently wait-on)",
+      "Bash(npm install -D concurrently wait-on --no-optional)",
+      "Bash(npm install -D esbuild)",
+      "Bash(npm install -D esbuild --force)",
+      "Bash(pnpm:*)",
+      "Bash(test:*)",
+      "Bash(tree:*)",
+      "Bash(npx tsc --noEmit)",
+      "Bash(npx tsc --noEmit src/stores/editStore.ts src/stores/index.ts)",
+      "Bash(npm run build)",
+      "Bash(npx tsc --noEmit src/services/pdfEditor.ts)",
+      "Bash(npx vite build --mode development)",
+      "Bash(npm run type-check)",
+      "Bash(npx tsc --noEmit --skipLibCheck)"
+    ]
+  }
+}

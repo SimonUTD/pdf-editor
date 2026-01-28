@@ -1,11 +1,8 @@
 {
   "name": "pdf-editor",
   "version": "1.0.0",
-  "description": "",
+  "description": "A cross-platform PDF editor",
   "main": "dist-electron/main.js",
-  "directories": {
-    "doc": "docs"
-  },
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build && electron-builder",
@@ -19,7 +16,7 @@
     "type": "git",
     "url": "git+https://github.com/SimonUTD/pdf-editor.git"
   },
-  "keywords": [],
+  "keywords": ["pdf", "editor", "electron"],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
@@ -28,6 +25,7 @@
   },
   "homepage": "https://github.com/SimonUTD/pdf-editor#readme",
   "dependencies": {
+    "@ant-design/icons": "^6.1.0",
     "antd": "^6.2.2",
     "docx": "^9.5.1",
     "file-saver": "^2.0.5",

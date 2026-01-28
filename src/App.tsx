@@ -16,9 +16,9 @@ import { PDFEditor } from './services/pdfEditor';
 import { ExportService } from './services/exportService';
 import { usePDFStore, useUIStore, useEditStore } from './stores';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import { getArrayBuffer } from './utils/arrayBuffer';
 
 const App: React.FC = () => {
-  const [loading, setLoading] = useState(false);
   const { pdfDocument, filePath, totalPages, loadPDF } = usePDFStore();
   const { selectedPageIndex, selectPage } = useUIStore();
   const { hasUnsavedChanges, markAsSaved, markAsUnsaved, addToHistory } = useEditStore();
@@ -49,15 +49,13 @@ const App: React.FC = () => {
 
   const loadFile = async () => {
     try {
-      setLoading(true);
       const fileData = await window.electronAPI.openFile();
 
       if (!fileData) {
-        setLoading(false);
         return;
       }
 
-      const document = await PDFRenderer.loadDocument(fileData.buffer);
+      const document = await PDFRenderer.loadDocument(getArrayBuffer(new Uint8Array(fileData.buffer)));
       const numPages = document.numPages;
 
       loadPDF(fileData.filePath, document, numPages);
@@ -67,8 +65,6 @@ const App: React.FC = () => {
     } catch (error) {
       console.error('Error loading PDF:', error);
       message.error('Failed to load PDF file');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -79,7 +75,7 @@ const App: React.FC = () => {
     }
 
     try {
-      const result = await window.electronAPI.saveFile(filePath, pdfBytes.buffer);
+      const result = await window.electronAPI.saveFile(filePath, getArrayBuffer(pdfBytes));
       if (result.success) {
         markAsSaved();
         message.success('File saved successfully');
@@ -99,7 +95,7 @@ const App: React.FC = () => {
     }
 
     try {
-      const result = await window.electronAPI.saveFileAs(pdfBytes.buffer);
+      const result = await window.electronAPI.saveFileAs(getArrayBuffer(pdfBytes));
       if (result.success && result.filePath) {
         loadPDF(result.filePath, pdfDocument, totalPages);
         markAsSaved();
@@ -138,7 +134,7 @@ const App: React.FC = () => {
           const newBytes = await PDFEditor.saveToBytes(pdfDoc);
 
           setPdfBytes(newBytes);
-          const document = await PDFRenderer.loadDocument(newBytes.buffer);
+          const document = await PDFRenderer.loadDocument(getArrayBuffer(newBytes));
           loadPDF(filePath || '', document, document.numPages);
 
           addToHistory({
@@ -174,7 +170,7 @@ const App: React.FC = () => {
       const newBytes = await PDFEditor.saveToBytes(pdfDoc);
 
       setPdfBytes(newBytes);
-      const document = await PDFRenderer.loadDocument(newBytes.buffer);
+      const document = await PDFRenderer.loadDocument(getArrayBuffer(newBytes));
       loadPDF(filePath || '', document, document.numPages);
 
       addToHistory({
@@ -220,7 +216,7 @@ const App: React.FC = () => {
         const newBytes = await PDFEditor.saveToBytes(pdfDoc);
 
         setPdfBytes(newBytes);
-        const document = await PDFRenderer.loadDocument(newBytes.buffer);
+        const document = await PDFRenderer.loadDocument(getArrayBuffer(newBytes));
         loadPDF(filePath || '', document, document.numPages);
 
         addToHistory({
@@ -267,7 +263,7 @@ const App: React.FC = () => {
         const newBytes = await PDFEditor.saveToBytes(pdfDoc);
 
         setPdfBytes(newBytes);
-        const document = await PDFRenderer.loadDocument(newBytes.buffer);
+        const document = await PDFRenderer.loadDocument(getArrayBuffer(newBytes));
         loadPDF(filePath || '', document, document.numPages);
 
         addToHistory({
@@ -339,7 +335,7 @@ const App: React.FC = () => {
     try {
       const mergedBytes = await PDFEditor.mergePDFs(pdfBytesArray);
       setPdfBytes(mergedBytes);
-      const document = await PDFRenderer.loadDocument(mergedBytes.buffer);
+      const document = await PDFRenderer.loadDocument(getArrayBuffer(mergedBytes));
       loadPDF('merged.pdf', document, document.numPages);
       addToHistory({ type: 'pdf-merge', timestamp: Date.now(), data: { count: pdfBytesArray.length } });
       markAsUnsaved();
@@ -358,7 +354,7 @@ const App: React.FC = () => {
       await PDFEditor.addTextWatermark(pdfDoc, text, options);
       const newBytes = await PDFEditor.saveToBytes(pdfDoc);
       setPdfBytes(newBytes);
-      const document = await PDFRenderer.loadDocument(newBytes.buffer);
+      const document = await PDFRenderer.loadDocument(getArrayBuffer(newBytes));
       loadPDF(filePath || '', document, document.numPages);
       addToHistory({ type: 'watermark-add', timestamp: Date.now(), data: { text } });
       markAsUnsaved();
@@ -375,7 +371,7 @@ const App: React.FC = () => {
       await PDFEditor.addImageWatermark(pdfDoc, imageBytes, imageType, options);
       const newBytes = await PDFEditor.saveToBytes(pdfDoc);
       setPdfBytes(newBytes);
-      const document = await PDFRenderer.loadDocument(newBytes.buffer);
+      const document = await PDFRenderer.loadDocument(getArrayBuffer(newBytes));
       loadPDF(filePath || '', document, document.numPages);
       addToHistory({ type: 'watermark-add', timestamp: Date.now(), data: { type: 'image' } });
       markAsUnsaved();
@@ -392,7 +388,7 @@ const App: React.FC = () => {
       await PDFEditor.addHeader(pdfDoc, text, options);
       const newBytes = await PDFEditor.saveToBytes(pdfDoc);
       setPdfBytes(newBytes);
-      const document = await PDFRenderer.loadDocument(newBytes.buffer);
+      const document = await PDFRenderer.loadDocument(getArrayBuffer(newBytes));
       loadPDF(filePath || '', document, document.numPages);
       addToHistory({ type: 'header-add', timestamp: Date.now(), data: { text } });
       markAsUnsaved();
@@ -409,7 +405,7 @@ const App: React.FC = () => {
       await PDFEditor.addFooter(pdfDoc, text, options);
       const newBytes = await PDFEditor.saveToBytes(pdfDoc);
       setPdfBytes(newBytes);
-      const document = await PDFRenderer.loadDocument(newBytes.buffer);
+      const document = await PDFRenderer.loadDocument(getArrayBuffer(newBytes));
       loadPDF(filePath || '', document, document.numPages);
       addToHistory({ type: 'footer-add', timestamp: Date.now(), data: { text } });
       markAsUnsaved();
@@ -426,7 +422,7 @@ const App: React.FC = () => {
       await PDFEditor.eraseRegion(pdfDoc, selectedPageIndex, x, y, width, height);
       const newBytes = await PDFEditor.saveToBytes(pdfDoc);
       setPdfBytes(newBytes);
-      const document = await PDFRenderer.loadDocument(newBytes.buffer);
+      const document = await PDFRenderer.loadDocument(getArrayBuffer(newBytes));
       loadPDF(filePath || '', document, document.numPages);
       addToHistory({ type: 'content-erase', timestamp: Date.now(), data: { pageIndex: selectedPageIndex, x, y, width, height } });
       markAsUnsaved();
@@ -443,7 +439,7 @@ const App: React.FC = () => {
       await PDFEditor.addHighlight(pdfDoc, selectedPageIndex, x, y, width, height, color, opacity);
       const newBytes = await PDFEditor.saveToBytes(pdfDoc);
       setPdfBytes(newBytes);
-      const document = await PDFRenderer.loadDocument(newBytes.buffer);
+      const document = await PDFRenderer.loadDocument(getArrayBuffer(newBytes));
       loadPDF(filePath || '', document, document.numPages);
       addToHistory({ type: 'highlight-add', timestamp: Date.now(), data: { pageIndex: selectedPageIndex, x, y, width, height } });
       markAsUnsaved();
@@ -460,7 +456,7 @@ const App: React.FC = () => {
       await PDFEditor.replacePage(pdfDoc, selectedPageIndex, sourcePdfBytes, sourcePageIndex);
       const newBytes = await PDFEditor.saveToBytes(pdfDoc);
       setPdfBytes(newBytes);
-      const document = await PDFRenderer.loadDocument(newBytes.buffer);
+      const document = await PDFRenderer.loadDocument(getArrayBuffer(newBytes));
       loadPDF(filePath || '', document, document.numPages);
       addToHistory({
         type: 'page-replace',
@@ -485,7 +481,7 @@ const App: React.FC = () => {
           await PDFEditor.reversePages(pdfDoc);
           const newBytes = await PDFEditor.saveToBytes(pdfDoc);
           setPdfBytes(newBytes);
-          const document = await PDFRenderer.loadDocument(newBytes.buffer);
+          const document = await PDFRenderer.loadDocument(getArrayBuffer(newBytes));
           loadPDF(filePath || '', document, document.numPages);
           addToHistory({ type: 'pages-reverse', timestamp: Date.now(), data: {} });
           markAsUnsaved();
