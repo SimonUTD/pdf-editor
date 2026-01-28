@@ -13,7 +13,12 @@ export interface PDFRenderOptions {
 
 export class PDFRenderer {
   static async loadDocument(data: ArrayBuffer) {
-    const loadingTask = pdfjsLib.getDocument({ data });
+    const loadingTask = pdfjsLib.getDocument({
+      data,
+      cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.120/',
+      cMapPacked: true,
+      standardFontDataUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.120/'
+    });
     return await loadingTask.promise;
   }
 
@@ -74,21 +79,26 @@ export class PDFRenderer {
    * @param scale - 缩放比例
    * @param textDivs - 文本 DIV 数组
    */
-  static renderTextLayer(
+  static async renderTextLayer(
     page: any,
     viewport: any,
     container: HTMLDivElement,
     scale: number,
     textDivs: HTMLDivElement[]
-  ): void {
-    const { textContentItems } = page.getTextContent();
+  ): Promise<void> {
+    const textContent = await page.getTextContent();
+
+    if (!textContent || !textContent.items) {
+      console.warn('No text content found');
+      return;
+    }
 
     // 清空容器
     container.innerHTML = '';
     textDivs.length = 0;
 
     // 渲染每个文本项
-    textContentItems.forEach((item: any) => {
+    textContent.items.forEach((item: any) => {
       const textDiv = document.createElement('div');
       textDiv.className = 'pdf-text-layer-text';
 

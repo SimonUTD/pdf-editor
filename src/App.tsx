@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { ConfigProvider, theme, Empty, message, Modal } from 'antd';
+import { ConfigProvider, theme, Empty, message, Modal, Input } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import { MainLayout } from './components/Layout/MainLayout';
 import { Sidebar } from './components/PDFViewer/Sidebar';
@@ -508,81 +508,101 @@ const App: React.FC = () => {
       return;
     }
 
-    // 使用 prompt 获取文本内容 (后续可以改为更好的输入方式)
-    const text = prompt('请输入文本内容:');
-    if (!text) {
-      setToolMode('view');
-      return;
-    }
+    // 使用 Modal 获取文本内容
+    let inputValue = '';
 
-    try {
-      // 创建对象
-      const newObject: TextObject = {
-        id: `text-${Date.now()}-${Math.random()}`,
-        type: 'text',
-        pageIndex,
-        position: { x, y },
-        size: { width: 200, height: 100 }, // 初始大小
-        zIndex: objects.length + 1,
-        selected: true,
-        content: text,
-        style: {
-          fontSize: 16,
-          color: '#000000',
-          fontFamily: 'sans-serif',
-          opacity: 1,
-        },
-      };
-
-      // 使用 TextInsertCommand 包装操作
-      const pdfDoc = await PDFEditor.createFromBytes(pdfBytes);
-
-      const command = new TextInsertCommand(
-        pdfDoc,
-        newObject,
-        async (obj) => {
-          // onExecute: 添加对象到存储并保存到 PDF
-          addObject(obj);
-
-          // 保存到 PDF
-          const newBytes = await PDFEditor.saveToBytes(pdfDoc);
-          await reloadPDF(newBytes);
-
-          // 添加到历史记录
-          addToHistory({
-            type: 'text-insert',
-            timestamp: Date.now(),
-            data: {
-              pageIndex: obj.pageIndex,
-              text: obj.content,
-              x: obj.position.x,
-              y: obj.position.y,
-              fontSize: obj.style.fontSize,
-              color: {
-                r: parseInt(obj.style.color.slice(1, 3), 16) / 255,
-                g: parseInt(obj.style.color.slice(3, 5), 16) / 255,
-                b: parseInt(obj.style.color.slice(5, 7), 16) / 255,
-              },
-            },
-          });
-
-          message.success('文本已插入，可拖拽调整位置');
-        },
-        async (id) => {
-          // onUndo: 从对象存储移除
-          useObjectStore.getState().deleteObject(id);
-          // 重新加载 PDF
-          await reloadPDF(pdfBytes);
+    Modal.confirm({
+      title: '插入文本',
+      content: (
+        <Input
+          defaultValue=""
+          onChange={(e) => inputValue = e.target.value}
+          placeholder="请输入文本内容"
+          maxLength={500}
+          autoFocus
+        />
+      ),
+      okText: '确定',
+      cancelText: '取消',
+      onOk: async () => {
+        if (!inputValue || inputValue.trim() === '') {
+          message.warning('请输入文本内容');
+          return;
         }
-      );
 
-      await executeCommand(command);
-    } catch (error) {
-      console.error('Error inserting text:', error);
-      message.error('插入文本失败');
-    } finally {
-      setToolMode('view');
-    }
+        try {
+          // 创建对象
+          const newObject: TextObject = {
+            id: `text-${Date.now()}-${Math.random()}`,
+            type: 'text',
+            pageIndex,
+            position: { x, y },
+            size: { width: 200, height: 100 }, // 初始大小
+            zIndex: objects.length + 1,
+            selected: true,
+            content: inputValue,
+            style: {
+              fontSize: 16,
+              color: '#000000',
+              fontFamily: 'sans-serif',
+              opacity: 1,
+            },
+          };
+
+          // 使用 TextInsertCommand 包装操作
+          const pdfDoc = await PDFEditor.createFromBytes(pdfBytes);
+
+          const command = new TextInsertCommand(
+            pdfDoc,
+            newObject,
+            async (obj) => {
+              // onExecute: 添加对象到存储并保存到 PDF
+              addObject(obj);
+
+              // 保存到 PDF
+              const newBytes = await PDFEditor.saveToBytes(pdfDoc);
+              await reloadPDF(newBytes);
+
+              // 添加到历史记录
+              addToHistory({
+                type: 'text-insert',
+                timestamp: Date.now(),
+                data: {
+                  pageIndex: obj.pageIndex,
+                  text: obj.content,
+                  x: obj.position.x,
+                  y: obj.position.y,
+                  fontSize: obj.style.fontSize,
+                  color: {
+                    r: parseInt(obj.style.color.slice(1, 3), 16) / 255,
+                    g: parseInt(obj.style.color.slice(3, 5), 16) / 255,
+                    b: parseInt(obj.style.color.slice(5, 7), 16) / 255,
+                  },
+                },
+              });
+
+              message.success('文本已插入，可拖拽调整位置');
+            },
+            async (id) => {
+              // onUndo: 从对象存储移除
+              useObjectStore.getState().deleteObject(id);
+              // 重新加载 PDF
+              await reloadPDF(pdfBytes);
+            }
+          );
+
+          await executeCommand(command);
+        } catch (error) {
+          console.error('Error inserting text:', error);
+          message.error('插入文本失败');
+        } finally {
+          setToolMode('view');
+        }
+      },
+      onCancel: () => {
+        setToolMode('view');
+      },
+    });
   }, [pdfBytes, objects.length, addObject, setToolMode, executeCommand, reloadPDF, addToHistory]);
 
   // 保存对象到 PDF
@@ -799,20 +819,43 @@ const App: React.FC = () => {
 
   const handleEraseContent = useCallback(async (x: number, y: number, width: number, height: number) => {
     if (!pdfBytes) return;
+
     try {
-      const pdfDoc = await PDFEditor.createFromBytes(pdfBytes);
-      await PDFEditor.eraseRegion(pdfDoc, selectedPageIndex, x, y, width, height);
-      const newBytes = await PDFEditor.saveToBytes(pdfDoc);
-      setPdfBytes(newBytes);
-      const document = await PDFRenderer.loadDocument(getArrayBuffer(newBytes));
-      loadPDF(filePath || '', document, document.numPages);
-      addToHistory({ type: 'content-erase', timestamp: Date.now(), data: { pageIndex: selectedPageIndex, x, y, width, height } });
-      markAsUnsaved();
+      // Save original state for undo
+      const originalBytes = new Uint8Array(pdfBytes);
+
+      const command = new EraseCommand(
+        [{ pageIndex: selectedPageIndex, path: [{ x, y }], strokeWidth: width }],
+        new Map([[selectedPageIndex.toString(), originalBytes]]),
+        async () => {
+          // onExecute callback
+          const pdfDoc = await PDFEditor.createFromBytes(pdfBytes);
+          await PDFEditor.eraseRegion(pdfDoc, selectedPageIndex, x, y, width, height);
+          const newBytes = await PDFEditor.saveToBytes(pdfDoc);
+          setPdfBytes(newBytes);
+          const document = await PDFRenderer.loadDocument(getArrayBuffer(newBytes));
+          loadPDF(filePath || '', document, document.numPages);
+          addToHistory({ type: 'content-erase', timestamp: Date.now(), data: { pageIndex: selectedPageIndex, x, y, width, height } });
+          markAsUnsaved();
+          message.success('内容已擦除');
+        },
+        async (pageIndex: number, content: Uint8Array) => {
+          // onUndo callback
+          setPdfBytes(content);
+          const document = await PDFRenderer.loadDocument(getArrayBuffer(content));
+          loadPDF(filePath || '', document, document.numPages);
+          markAsUnsaved();
+          message.info('已撤销擦除操作');
+        }
+      );
+
+      await executeCommand(command);
     } catch (error) {
       console.error('Error erasing content:', error);
+      message.error('擦除内容失败');
       throw error;
     }
-  }, [pdfBytes, selectedPageIndex, filePath, loadPDF, addToHistory, markAsUnsaved]);
+  }, [pdfBytes, selectedPageIndex, filePath, loadPDF, addToHistory, markAsUnsaved, executeCommand]);
 
   const handleAddHighlight = useCallback(async (x: number, y: number, width: number, height: number) => {
     if (!pdfBytes) return;
