@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button, Space, Typography, Divider, Dropdown } from 'antd';
+import { Button, Space, Typography, Divider, Dropdown, Row, Col } from 'antd';
 import type { MenuProps } from 'antd';
 import {
   FileOutlined,
@@ -20,8 +20,12 @@ import {
   ScissorOutlined,
   SwapOutlined,
   SortAscendingOutlined,
+  MoreOutlined,
+  UndoOutlined,
+  RedoOutlined,
 } from '@ant-design/icons';
 import { useUIStore } from '@/stores';
+import { translate } from '@/constants/translations';
 
 const { Text } = Typography;
 
@@ -38,10 +42,12 @@ interface ToolbarProps {
   onMergePDFs: () => void;
   onAddWatermark: () => void;
   onAddHeaderFooter: () => void;
-  onEraseContent: () => void;
-  onAddHighlight: () => void;
-  onReplacePage: () => void;
   onReversePages: () => void;
+  onReplacePage: () => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
   fileName: string | null;
   hasUnsavedChanges: boolean;
   canSave: boolean;
@@ -60,156 +66,237 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   onMergePDFs,
   onAddWatermark,
   onAddHeaderFooter,
-  onEraseContent,
-  onAddHighlight,
   onReplacePage,
   onReversePages,
+  onUndo,
+  onRedo,
+  canUndo = false,
+  canRedo = false,
   fileName,
   hasUnsavedChanges,
   canSave,
 }) => {
-  const { zoom, zoomIn, zoomOut, resetZoom } = useUIStore();
+  const { zoom, zoomIn, zoomOut, resetZoom, toolMode, setToolMode } = useUIStore();
 
   const exportMenuItems: MenuProps['items'] = [
     {
       key: 'export-images',
-      label: 'Export as Images (PNG)',
+      label: translate('Export as Images (PNG)'),
       icon: <FileImageOutlined />,
       onClick: onExportAsImages,
     },
     {
       key: 'export-text',
-      label: 'Export as Text (TXT)',
+      label: translate('Export as Text (TXT)'),
       icon: <FileTextOutlined />,
       onClick: onExportAsText,
     },
     {
       key: 'export-word',
-      label: 'Export as Word (DOCX)',
+      label: translate('Export as Word (DOCX)'),
       icon: <FileWordOutlined />,
       onClick: onExportAsWord,
+    },
+  ];
+
+  const toolsMenuItems: MenuProps['items'] = [
+    {
+      key: 'merge',
+      label: translate('Merge PDFs'),
+      icon: <MergeCellsOutlined />,
+      onClick: onMergePDFs,
+    },
+    {
+      key: 'watermark',
+      label: translate('Watermark'),
+      icon: <FontColorsOutlined />,
+      onClick: onAddWatermark,
+    },
+    {
+      key: 'header-footer',
+      label: translate('Header/Footer'),
+      icon: <FontSizeOutlined />,
+      onClick: onAddHeaderFooter,
+    },
+    {
+      key: 'divider',
+      type: 'divider',
+    },
+    {
+      key: 'replace',
+      label: '替换页面',
+      icon: <SwapOutlined />,
+      onClick: onReplacePage,
+    },
+    {
+      key: 'reverse',
+      label: translate('Reverse Pages'),
+      icon: <SortAscendingOutlined />,
+      onClick: onReversePages,
     },
   ];
 
   return (
     <div
       style={{
-        height: 56,
-        borderBottom: '1px solid #f0f0f0',
-        padding: '0 16px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
         backgroundColor: '#fff',
+        borderBottom: '1px solid #f0f0f0',
       }}
     >
-      <Space split={<Divider type="vertical" />}>
-        <Space>
-          <Button icon={<FileOutlined />} onClick={onOpenFile}>
-            Open
-          </Button>
-          <Button
-            icon={<SaveOutlined />}
-            onClick={onSave}
-            disabled={!canSave || !hasUnsavedChanges}
-          >
-            Save
-          </Button>
-          <Button onClick={onSaveAs} disabled={!canSave}>
-            Save As
-          </Button>
-          <Button icon={<PrinterOutlined />} onClick={onPrint} disabled={!canSave}>
-            Print
-          </Button>
-        </Space>
+      <Row align="middle" style={{ padding: '8px 16px' }}>
+        {/* 文件操作区 */}
+        <Col flex="0 0 auto">
+          <Space size="small">
+            <Button size="small" icon={<FileOutlined />} onClick={onOpenFile}>
+              打开
+            </Button>
+            <Button
+              size="small"
+              icon={<SaveOutlined />}
+              onClick={onSave}
+              disabled={!canSave || !hasUnsavedChanges}
+            >
+              保存
+            </Button>
+            <Button size="small" onClick={onSaveAs} disabled={!canSave}>
+              另存
+            </Button>
+            <Button
+              size="small"
+              icon={<PrinterOutlined />}
+              onClick={onPrint}
+              disabled={!canSave}
+            >
+              打印
+            </Button>
+          </Space>
+        </Col>
 
-        <Space>
-          <Button
-            icon={<PictureOutlined />}
-            onClick={onInsertImage}
-            disabled={!canSave}
-          >
-            Insert Image
-          </Button>
-          <Button
-            icon={<FontSizeOutlined />}
-            onClick={onInsertText}
-            disabled={!canSave}
-          >
-            Insert Text
-          </Button>
-        </Space>
+        <Divider type="vertical" />
 
-        <Space>
-          <Button
-            icon={<MergeCellsOutlined />}
-            onClick={onMergePDFs}
-          >
-            Merge PDFs
-          </Button>
-          <Button
-            icon={<FontColorsOutlined />}
-            onClick={onAddWatermark}
-            disabled={!canSave}
-          >
-            Watermark
-          </Button>
-          <Button
-            icon={<FontSizeOutlined />}
-            onClick={onAddHeaderFooter}
-            disabled={!canSave}
-          >
-            Header/Footer
-          </Button>
-          <Button
-            icon={<HighlightOutlined />}
-            onClick={onAddHighlight}
-            disabled={!canSave}
-          >
-            Highlight
-          </Button>
-          <Button
-            icon={<ScissorOutlined />}
-            onClick={onEraseContent}
-            disabled={!canSave}
-          >
-            Erase
-          </Button>
-          <Button
-            icon={<SortAscendingOutlined />}
-            onClick={onReversePages}
-            disabled={!canSave}
-          >
-            Reverse Pages
-          </Button>
-        </Space>
+        {/* 撤销/重做区 */}
+        <Col flex="0 0 auto">
+          <Space size="small">
+            <Button
+              size="small"
+              icon={<UndoOutlined />}
+              onClick={onUndo}
+              disabled={!canUndo}
+              title="撤销 (Ctrl+Z)"
+            >
+              撤销
+            </Button>
+            <Button
+              size="small"
+              icon={<RedoOutlined />}
+              onClick={onRedo}
+              disabled={!canRedo}
+              title="重做 (Ctrl+Y)"
+            >
+              重做
+            </Button>
+          </Space>
+        </Col>
 
-        <Space>
-          <Dropdown menu={{ items: exportMenuItems }} disabled={!canSave}>
-            <Button icon={<ExportOutlined />}>Export</Button>
+        <Divider type="vertical" />
+
+        {/* 插入操作区 */}
+        <Col flex="0 0 auto">
+          <Space size="small">
+            <Button
+              size="small"
+              icon={<PictureOutlined />}
+              onClick={onInsertImage}
+              disabled={!canSave}
+            >
+              插入图片
+            </Button>
+            <Button
+              size="small"
+              icon={<FontSizeOutlined />}
+              onClick={onInsertText}
+              disabled={!canSave}
+            >
+              插入文本
+            </Button>
+          </Space>
+        </Col>
+
+        <Divider type="vertical" />
+
+        {/* 工具模式区 */}
+        <Col flex="0 0 auto">
+          <Space size="small">
+            <Button
+              size="small"
+              type={toolMode === 'erase' ? 'primary' : 'default'}
+              icon={<ScissorOutlined />}
+              onClick={() => setToolMode(toolMode === 'erase' ? 'view' : 'erase')}
+              disabled={!canSave}
+              danger={toolMode === 'erase'}
+            >
+              {toolMode === 'erase' ? '退出擦除' : '擦除'}
+            </Button>
+            <Button
+              size="small"
+              type={toolMode === 'highlight' ? 'primary' : 'default'}
+              icon={<HighlightOutlined />}
+              onClick={() => setToolMode(toolMode === 'highlight' ? 'view' : 'highlight')}
+              disabled={!canSave}
+              style={toolMode === 'highlight' ? { backgroundColor: '#ffec3d', borderColor: '#ffec3d', color: '#000' } : {}}
+            >
+              {toolMode === 'highlight' ? '退出高亮' : '高亮'}
+            </Button>
+          </Space>
+        </Col>
+
+        <Divider type="vertical" />
+
+        {/* 更多工具区 */}
+        <Col flex="0 0 auto">
+          <Dropdown menu={{ items: toolsMenuItems }} disabled={!canSave}>
+            <Button size="small" icon={<MoreOutlined />}>
+              更多工具
+            </Button>
           </Dropdown>
-        </Space>
+        </Col>
 
-        <Space>
-          {fileName && (
-            <Text type="secondary">
-              {fileName}
-              {hasUnsavedChanges && ' *'}
+        <Divider type="vertical" />
+
+        {/* 导出区 */}
+        <Col flex="0 0 auto">
+          <Dropdown menu={{ items: exportMenuItems }} disabled={!canSave}>
+            <Button size="small" icon={<ExportOutlined />}>
+              导出
+            </Button>
+          </Dropdown>
+        </Col>
+
+        <Divider type="vertical" />
+
+        {/* 文件名和缩放 */}
+        <Col flex="1 1 auto" style={{ overflow: 'hidden', textAlign: 'right' }}>
+          <Space size="small">
+            {fileName && (
+              <Text
+                ellipsis
+                style={{ maxWidth: 300, color: hasUnsavedChanges ? '#ff4d4f' : undefined }}
+              >
+                {fileName}
+                {hasUnsavedChanges && ' *'}
+              </Text>
+            )}
+            <Button size="small" icon={<ZoomOutOutlined />} onClick={zoomOut} />
+            <Text style={{ minWidth: 45, textAlign: 'center', fontSize: 12 }}>
+              {Math.round(zoom * 100)}%
             </Text>
-          )}
-        </Space>
-      </Space>
-
-      <Space>
-        <Button icon={<ZoomOutOutlined />} onClick={zoomOut} />
-        <Text style={{ minWidth: 60, textAlign: 'center' }}>
-          {Math.round(zoom * 100)}%
-        </Text>
-        <Button icon={<ZoomInOutlined />} onClick={zoomIn} />
-        <Button icon={<FullscreenOutlined />} onClick={resetZoom}>
-          Fit
-        </Button>
-      </Space>
+            <Button size="small" icon={<ZoomInOutlined />} onClick={zoomIn} />
+            <Button size="small" icon={<FullscreenOutlined />} onClick={resetZoom}>
+              适应
+            </Button>
+          </Space>
+        </Col>
+      </Row>
     </div>
   );
 };

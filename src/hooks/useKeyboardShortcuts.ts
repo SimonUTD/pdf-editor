@@ -5,6 +5,8 @@ interface KeyboardShortcuts {
   onSaveAs?: () => void;
   onPrint?: () => void;
   onOpen?: () => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
 }
 
 export const useKeyboardShortcuts = (shortcuts: KeyboardShortcuts) => {
@@ -29,6 +31,22 @@ export const useKeyboardShortcuts = (shortcuts: KeyboardShortcuts) => {
         event.preventDefault();
         if (shortcuts.onOpen) {
           shortcuts.onOpen();
+        }
+      } else if (modifier && event.key === 'z') {
+        event.preventDefault();
+        // Undo: Ctrl+Z or Cmd+Z (without shift)
+        if (!event.shiftKey && shortcuts.onUndo) {
+          shortcuts.onUndo();
+        }
+        // Redo: Ctrl+Shift+Z or Cmd+Shift+Z
+        else if (event.shiftKey && shortcuts.onRedo) {
+          shortcuts.onRedo();
+        }
+      } else if (modifier && event.key === 'y') {
+        event.preventDefault();
+        // Redo: Ctrl+Y or Cmd+Y
+        if (shortcuts.onRedo) {
+          shortcuts.onRedo();
         }
       }
     };

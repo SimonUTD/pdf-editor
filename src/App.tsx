@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { ConfigProvider, theme, Empty, message, Modal } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import { MainLayout } from './components/Layout/MainLayout';
@@ -13,17 +13,30 @@ import { PageReplacer } from './components/Editors/PageReplacer';
 import { PDFRenderer } from './services/pdfRenderer';
 import { PDFEditor } from './services/pdfEditor';
 import { ExportService } from './services/exportService';
-import { usePDFStore, useUIStore, useEditStore } from './stores';
+import { usePDFStore, useUIStore, useEditStore, useObjectStore } from './stores';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useI18n } from './hooks/useI18n';
-import { getArrayBuffer } from './utils/arrayBuffer';
+import { getArrayBuffer, base64ToArrayBuffer } from './utils/arrayBuffer';
 import { getMessage } from './constants/messages';
+import { ImageObject, TextObject, InsertedObject } from './types/objects';
+import {
+  ImageInsertCommand,
+  TextInsertCommand,
+  ObjectMoveCommand,
+  ObjectDeleteCommand,
+  PageDeleteCommand,
+  PageInsertCommand,
+  EraseCommand,
+  HighlightCommand,
+  type Command,
+} from './commands';
 
 const App: React.FC = () => {
   const { t } = useI18n();
   const { pdfDocument, filePath, totalPages, loadPDF } = usePDFStore();
   const { selectedPageIndex, selectPage, toolMode, setToolMode } = useUIStore();
   const { hasUnsavedChanges, markAsSaved, markAsUnsaved, addToHistory } = useEditStore();
+  const { objects, addObject } = useObjectStore();
 
   const [pdfBytes, setPdfBytes] = useState<Uint8Array | null>(null);
   const [imageInserterVisible, setImageInserterVisible] = useState(false);
@@ -32,6 +45,94 @@ const App: React.FC = () => {
   const [watermarkEditorVisible, setWatermarkEditorVisible] = useState(false);
   const [headerFooterEditorVisible, setHeaderFooterEditorVisible] = useState(false);
   const [pageReplacerVisible, setPageReplacerVisible] = useState(false);
+
+  // Command history for undo/redo
+  const [commandHistory, setCommandHistory] = useState<Command[]>([]);
+  const [commandIndex, setCommandIndex] = useState(-1);
+
+  // Use ref to track latest values without causing re-renders
+  const commandHistoryRef = useRef<Command[]>([]);
+  const commandIndexRef = useRef(-1);
+
+  // Keep refs in sync with state
+  React.useEffect(() => {
+    commandHistoryRef.current = commandHistory;
+    commandIndexRef.current = commandIndex;
+  }, [commandHistory, commandIndex]);
+
+  // Command execution with history management
+  const executeCommand = useCallback(async (command: Command) => {
+    try {
+      await command.execute();
+
+      // Use functional updates to avoid closure issues
+      setCommandHistory((prevHistory) => {
+        const currentIndex = commandIndexRef.current;
+        const newHistory = prevHistory.slice(0, currentIndex + 1);
+        newHistory.push(command);
+
+        // Limit history length to prevent memory issues
+        if (newHistory.length > 100) {
+          newHistory.shift();
+        }
+
+        // Update index synchronously with history
+        setCommandIndex(newHistory.length - 1);
+
+        return newHistory;
+      });
+
+      markAsUnsaved();
+    } catch (error) {
+      console.error('Error executing command:', error);
+      message.error(getMessage('Failed to execute command'));
+      throw error;
+    }
+  }, [markAsUnsaved]);
+
+  // Undo last command
+  const undo = useCallback(async () => {
+    const currentIndex = commandIndexRef.current;
+    if (currentIndex < 0) return;
+
+    try {
+      const history = commandHistoryRef.current;
+      const command = history[currentIndex];
+      await command.undo();
+      setCommandIndex(currentIndex - 1);
+      markAsUnsaved();
+    } catch (error) {
+      console.error('Error undoing command:', error);
+      message.error(getMessage('Failed to undo'));
+      throw error;
+    }
+  }, [markAsUnsaved]);
+
+  // Redo next command
+  const redo = useCallback(async () => {
+    const currentIndex = commandIndexRef.current;
+    const history = commandHistoryRef.current;
+
+    if (currentIndex >= history.length - 1) return;
+
+    try {
+      const command = history[currentIndex + 1];
+      await command.redo();
+      setCommandIndex(currentIndex + 1);
+      markAsUnsaved();
+    } catch (error) {
+      console.error('Error redoing command:', error);
+      message.error(getMessage('Failed to redo'));
+      throw error;
+    }
+  }, [markAsUnsaved]);
+
+  // Helper function to reload PDF after modifications
+  const reloadPDF = useCallback(async (newPdfBytes: Uint8Array) => {
+    setPdfBytes(newPdfBytes);
+    const document = await PDFRenderer.loadDocument(getArrayBuffer(newPdfBytes));
+    loadPDF(filePath || '', document, document.numPages);
+  }, [filePath, loadPDF]);
 
   const handleOpenFile = async () => {
     if (hasUnsavedChanges) {
@@ -290,6 +391,280 @@ const App: React.FC = () => {
     [pdfBytes, selectedPageIndex, filePath, loadPDF, addToHistory, markAsUnsaved]
   );
 
+  // 插入图片到指定位置 (点击插入功能)
+  const handleInsertImageAtPosition = useCallback(async (pageIndex: number, x: number, y: number) => {
+    if (!pdfBytes) {
+      message.error(getMessage('No PDF loaded'));
+      return;
+    }
+
+    // 打开文件选择器
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/png,image/jpeg,image/jpg';
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        try {
+          const reader = new FileReader();
+          reader.onload = async (e) => {
+            const base64 = e.target?.result as string;
+            if (!base64) return;
+
+            // 计算图片尺寸 (默认200x200，保持宽高比)
+            const img = new Image();
+            img.onload = async () => {
+              const maxSize = 200;
+              let width = img.width;
+              let height = img.height;
+
+              if (width > height) {
+                if (width > maxSize) {
+                  height = (height * maxSize) / width;
+                  width = maxSize;
+                }
+              } else {
+                if (height > maxSize) {
+                  width = (width * maxSize) / height;
+                  height = maxSize;
+                }
+              }
+
+              // 创建对象
+              const newObject: ImageObject = {
+                id: `img-${Date.now()}-${Math.random()}`,
+                type: 'image',
+                pageIndex,
+                position: { x, y },
+                size: { width, height },
+                zIndex: objects.length + 1,
+                selected: true,
+                content: base64,
+                opacity: 1,
+              };
+
+              // 使用 ImageInsertCommand 包装操作
+              const imageBytes = base64ToArrayBuffer(base64);
+              const pdfDoc = await PDFEditor.createFromBytes(pdfBytes);
+
+              const command = new ImageInsertCommand(
+                pdfDoc,
+                newObject,
+                imageBytes,
+                async (obj) => {
+                  // onExecute: 添加对象到存储并保存到 PDF
+                  addObject(obj);
+
+                  // 保存到 PDF
+                  const newBytes = await PDFEditor.saveToBytes(pdfDoc);
+                  await reloadPDF(newBytes);
+
+                  // 添加到历史记录
+                  addToHistory({
+                    type: 'image-insert',
+                    timestamp: Date.now(),
+                    data: {
+                      pageIndex: obj.pageIndex,
+                      x: obj.position.x,
+                      y: obj.position.y,
+                      width: obj.size.width,
+                      height: obj.size.height,
+                    },
+                  });
+
+                  message.success('图片已插入，可拖拽调整位置');
+                },
+                async (id) => {
+                  // onUndo: 从对象存储移除
+                  useObjectStore.getState().deleteObject(id);
+                  // 重新加载 PDF（实际应用中可能需要更复杂的逻辑）
+                  await reloadPDF(pdfBytes);
+                }
+              );
+
+              await executeCommand(command);
+            };
+            img.src = base64;
+          };
+          reader.readAsDataURL(file);
+        } catch (error) {
+          console.error('Error reading image file:', error);
+          message.error('读取图片失败');
+        }
+      }
+      // 无论是否选择文件，都返回查看模式
+      setToolMode('view');
+    };
+    input.oncancel = () => {
+      setToolMode('view');
+    };
+    input.click();
+  }, [pdfBytes, objects.length, addObject, setToolMode, executeCommand, reloadPDF, addToHistory]);
+
+  // 插入文本到指定位置 (点击插入功能)
+  const handleInsertTextAtPosition = useCallback(async (pageIndex: number, x: number, y: number) => {
+    if (!pdfBytes) {
+      message.error(getMessage('No PDF loaded'));
+      return;
+    }
+
+    // 使用 prompt 获取文本内容 (后续可以改为更好的输入方式)
+    const text = prompt('请输入文本内容:');
+    if (!text) {
+      setToolMode('view');
+      return;
+    }
+
+    try {
+      // 创建对象
+      const newObject: TextObject = {
+        id: `text-${Date.now()}-${Math.random()}`,
+        type: 'text',
+        pageIndex,
+        position: { x, y },
+        size: { width: 200, height: 100 }, // 初始大小
+        zIndex: objects.length + 1,
+        selected: true,
+        content: text,
+        style: {
+          fontSize: 16,
+          color: '#000000',
+          fontFamily: 'sans-serif',
+          opacity: 1,
+        },
+      };
+
+      // 使用 TextInsertCommand 包装操作
+      const pdfDoc = await PDFEditor.createFromBytes(pdfBytes);
+
+      const command = new TextInsertCommand(
+        pdfDoc,
+        newObject,
+        async (obj) => {
+          // onExecute: 添加对象到存储并保存到 PDF
+          addObject(obj);
+
+          // 保存到 PDF
+          const newBytes = await PDFEditor.saveToBytes(pdfDoc);
+          await reloadPDF(newBytes);
+
+          // 添加到历史记录
+          addToHistory({
+            type: 'text-insert',
+            timestamp: Date.now(),
+            data: {
+              pageIndex: obj.pageIndex,
+              text: obj.content,
+              x: obj.position.x,
+              y: obj.position.y,
+              fontSize: obj.style.fontSize,
+              color: {
+                r: parseInt(obj.style.color.slice(1, 3), 16) / 255,
+                g: parseInt(obj.style.color.slice(3, 5), 16) / 255,
+                b: parseInt(obj.style.color.slice(5, 7), 16) / 255,
+              },
+            },
+          });
+
+          message.success('文本已插入，可拖拽调整位置');
+        },
+        async (id) => {
+          // onUndo: 从对象存储移除
+          useObjectStore.getState().deleteObject(id);
+          // 重新加载 PDF
+          await reloadPDF(pdfBytes);
+        }
+      );
+
+      await executeCommand(command);
+    } catch (error) {
+      console.error('Error inserting text:', error);
+      message.error('插入文本失败');
+    } finally {
+      setToolMode('view');
+    }
+  }, [pdfBytes, objects.length, addObject, setToolMode, executeCommand, reloadPDF, addToHistory]);
+
+  // 保存对象到 PDF
+  const saveObjectToPDF = useCallback(async (object: InsertedObject) => {
+    if (!pdfBytes) return;
+
+    try {
+      const pdfDoc = await PDFEditor.createFromBytes(pdfBytes);
+      const page = pdfDoc.getPage(object.pageIndex);
+
+      if (object.type === 'image') {
+        const imageBytes = base64ToArrayBuffer(object.content);
+        const imageType = object.content.startsWith('data:image/png') ? 'png' : 'jpg';
+        await PDFEditor.insertImage(
+          pdfDoc,
+          object.pageIndex,
+          imageBytes,
+          imageType,
+          object.position.x,
+          object.position.y,
+          object.size.width,
+          object.size.height
+        );
+
+        // Add to history with correct data structure
+        addToHistory({
+          type: 'image-insert',
+          timestamp: Date.now(),
+          data: {
+            pageIndex: object.pageIndex,
+            x: object.position.x,
+            y: object.position.y,
+            width: object.size.width,
+            height: object.size.height,
+          },
+        });
+      } else if (object.type === 'text') {
+        await PDFEditor.insertText(
+          pdfDoc,
+          object.pageIndex,
+          object.content,
+          object.position.x,
+          object.position.y,
+          object.style.fontSize,
+          {
+            r: parseInt(object.style.color.slice(1, 3), 16) / 255,
+            g: parseInt(object.style.color.slice(3, 5), 16) / 255,
+            b: parseInt(object.style.color.slice(5, 7), 16) / 255,
+          }
+        );
+
+        // Add to history with correct data structure
+        addToHistory({
+          type: 'text-insert',
+          timestamp: Date.now(),
+          data: {
+            pageIndex: object.pageIndex,
+            text: object.content,
+            x: object.position.x,
+            y: object.position.y,
+            fontSize: object.style.fontSize,
+            color: {
+              r: parseInt(object.style.color.slice(1, 3), 16) / 255,
+              g: parseInt(object.style.color.slice(3, 5), 16) / 255,
+              b: parseInt(object.style.color.slice(5, 7), 16) / 255,
+            },
+          },
+        });
+      }
+
+      const newBytes = await PDFEditor.saveToBytes(pdfDoc);
+      setPdfBytes(newBytes);
+      const document = await PDFRenderer.loadDocument(getArrayBuffer(newBytes));
+      loadPDF(filePath || '', document, document.numPages);
+      markAsUnsaved();
+    } catch (error) {
+      console.error('Error saving object to PDF:', error);
+      message.error('保存对象到PDF失败');
+      throw error;
+    }
+  }, [pdfBytes, filePath, loadPDF, addToHistory, markAsUnsaved]);
+
   const handleExportAsImages = useCallback(async () => {
     if (!pdfDocument) {
       message.error(getMessage('No PDF loaded'));
@@ -511,7 +886,22 @@ const App: React.FC = () => {
     onSaveAs: handleSaveAs,
     onPrint: handlePrint,
     onOpen: handleOpenFile,
+    onUndo: undo,
+    onRedo: redo,
   });
+
+  // ESC key handler to exit insert modes
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && (toolMode === 'insert-image' || toolMode === 'insert-text')) {
+        setToolMode('view');
+        message.info('已取消插入模式');
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [toolMode, setToolMode]);
 
   const fileName = filePath ? filePath.split('/').pop() || filePath.split('\\').pop() : null;
 
@@ -530,8 +920,18 @@ const App: React.FC = () => {
         onSave={handleSave}
         onSaveAs={handleSaveAs}
         onPrint={handlePrint}
-        onInsertImage={() => setImageInserterVisible(true)}
-        onInsertText={() => setTextInserterVisible(true)}
+        onUndo={undo}
+        onRedo={redo}
+        canUndo={commandIndex >= 0}
+        canRedo={commandIndex < commandHistory.length - 1}
+        onInsertImage={() => {
+          setToolMode('insert-image');
+          message.info('点击 PDF 位置插入图片');
+        }}
+        onInsertText={() => {
+          setToolMode('insert-text');
+          message.info('点击 PDF 位置插入文本');
+        }}
         onExportAsImages={handleExportAsImages}
         onExportAsText={handleExportAsText}
         onExportAsWord={handleExportAsWord}
@@ -555,6 +955,8 @@ const App: React.FC = () => {
               pageNumber={selectedPageIndex + 1}
               onEraseRegion={handleEraseContent}
               onHighlightRegion={handleAddHighlight}
+              onInsertImageAtPosition={handleInsertImageAtPosition}
+              onInsertTextAtPosition={handleInsertTextAtPosition}
             />
           ) : (
             <Empty

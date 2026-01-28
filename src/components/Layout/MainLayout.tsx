@@ -20,10 +20,12 @@ interface MainLayoutProps {
   onMergePDFs: () => void;
   onAddWatermark: () => void;
   onAddHeaderFooter: () => void;
-  onEraseContent: () => void;
-  onAddHighlight: () => void;
   onReplacePage: () => void;
   onReversePages: () => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
   sidebar: React.ReactNode;
   content: React.ReactNode;
 }
@@ -44,10 +46,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   onMergePDFs,
   onAddWatermark,
   onAddHeaderFooter,
-  onEraseContent,
-  onAddHighlight,
   onReplacePage,
   onReversePages,
+  onUndo,
+  onRedo,
+  canUndo = false,
+  canRedo = false,
   sidebar,
   content,
 }) => {
@@ -66,10 +70,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         onMergePDFs={onMergePDFs}
         onAddWatermark={onAddWatermark}
         onAddHeaderFooter={onAddHeaderFooter}
-        onEraseContent={onEraseContent}
-        onAddHighlight={onAddHighlight}
         onReplacePage={onReplacePage}
         onReversePages={onReversePages}
+        onUndo={onUndo}
+        onRedo={onRedo}
+        canUndo={canUndo}
+        canRedo={canRedo}
         fileName={fileName}
         hasUnsavedChanges={hasUnsavedChanges}
         canSave={canSave}
