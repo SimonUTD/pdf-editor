@@ -21,7 +21,12 @@
       "Bash(npx tsc --noEmit src/services/pdfEditor.ts)",
       "Bash(npx vite build --mode development)",
       "Bash(npm run type-check)",
-      "Bash(npx tsc --noEmit --skipLibCheck)"
+      "Bash(npx tsc --noEmit --skipLibCheck)",
+      "Bash(npx codex:*)",
+      "Bash(npm run lint:*)",
+      "mcp__codex-cli__ask-codex",
+      "Bash(npx codex-cli ask-codex:*)",
+      "Bash(npx tsc:*)"
     ]
   }
 }

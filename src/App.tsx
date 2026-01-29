@@ -46,6 +46,13 @@ const App: React.FC = () => {
   const [headerFooterEditorVisible, setHeaderFooterEditorVisible] = useState(false);
   const [pageReplacerVisible, setPageReplacerVisible] = useState(false);
 
+  // Inline text editing state
+  const [editingText, setEditingText] = useState<{
+    pageIndex: number;
+    position: { x: number; y: number };
+    content: string;
+  } | null>(null);
+
   // Command history for undo/redo
   const [commandHistory, setCommandHistory] = useState<Command[]>([]);
   const [commandIndex, setCommandIndex] = useState(-1);
@@ -444,20 +451,12 @@ const App: React.FC = () => {
               };
 
               // 使用 ImageInsertCommand 包装操作
-              const imageBytes = base64ToArrayBuffer(base64);
-              const pdfDoc = await PDFEditor.createFromBytes(pdfBytes);
-
               const command = new ImageInsertCommand(
-                pdfDoc,
                 newObject,
-                imageBytes,
                 async (obj) => {
-                  // onExecute: 添加对象到存储并保存到 PDF
+                  // onExecute: 仅添加对象到存储，不渲染到 PDF
                   addObject(obj);
-
-                  // 保存到 PDF
-                  const newBytes = await PDFEditor.saveToBytes(pdfDoc);
-                  await reloadPDF(newBytes);
+                  markAsUnsaved();
 
                   // 添加到历史记录
                   addToHistory({
@@ -477,8 +476,7 @@ const App: React.FC = () => {
                 async (id) => {
                   // onUndo: 从对象存储移除
                   useObjectStore.getState().deleteObject(id);
-                  // 重新加载 PDF（实际应用中可能需要更复杂的逻辑）
-                  await reloadPDF(pdfBytes);
+                  markAsUnsaved();
                 }
               );
 
@@ -501,109 +499,103 @@ const App: React.FC = () => {
     input.click();
   }, [pdfBytes, objects.length, addObject, setToolMode, executeCommand, reloadPDF, addToHistory]);
 
-  // 插入文本到指定位置 (点击插入功能)
-  const handleInsertTextAtPosition = useCallback(async (pageIndex: number, x: number, y: number) => {
+  // 插入文本到指定位置 (点击插入功能) - 使用内联编辑
+  const handleInsertTextAtPosition = useCallback((pageIndex: number, x: number, y: number) => {
     if (!pdfBytes) {
       message.error(getMessage('No PDF loaded'));
       return;
     }
 
-    // 使用 Modal 获取文本内容
-    let inputValue = '';
-
-    Modal.confirm({
-      title: '插入文本',
-      content: (
-        <Input
-          defaultValue=""
-          onChange={(e) => inputValue = e.target.value}
-          placeholder="请输入文本内容"
-          maxLength={500}
-          autoFocus
-        />
-      ),
-      okText: '确定',
-      cancelText: '取消',
-      onOk: async () => {
-        if (!inputValue || inputValue.trim() === '') {
-          message.warning('请输入文本内容');
-          return;
-        }
-
-        try {
-          // 创建对象
-          const newObject: TextObject = {
-            id: `text-${Date.now()}-${Math.random()}`,
-            type: 'text',
-            pageIndex,
-            position: { x, y },
-            size: { width: 200, height: 100 }, // 初始大小
-            zIndex: objects.length + 1,
-            selected: true,
-            content: inputValue,
-            style: {
-              fontSize: 16,
-              color: '#000000',
-              fontFamily: 'sans-serif',
-              opacity: 1,
-            },
-          };
-
-          // 使用 TextInsertCommand 包装操作
-          const pdfDoc = await PDFEditor.createFromBytes(pdfBytes);
-
-          const command = new TextInsertCommand(
-            pdfDoc,
-            newObject,
-            async (obj) => {
-              // onExecute: 添加对象到存储并保存到 PDF
-              addObject(obj);
-
-              // 保存到 PDF
-              const newBytes = await PDFEditor.saveToBytes(pdfDoc);
-              await reloadPDF(newBytes);
-
-              // 添加到历史记录
-              addToHistory({
-                type: 'text-insert',
-                timestamp: Date.now(),
-                data: {
-                  pageIndex: obj.pageIndex,
-                  text: obj.content,
-                  x: obj.position.x,
-                  y: obj.position.y,
-                  fontSize: obj.style.fontSize,
-                  color: {
-                    r: parseInt(obj.style.color.slice(1, 3), 16) / 255,
-                    g: parseInt(obj.style.color.slice(3, 5), 16) / 255,
-                    b: parseInt(obj.style.color.slice(5, 7), 16) / 255,
-                  },
-                },
-              });
-
-              message.success('文本已插入，可拖拽调整位置');
-            },
-            async (id) => {
-              // onUndo: 从对象存储移除
-              useObjectStore.getState().deleteObject(id);
-              // 重新加载 PDF
-              await reloadPDF(pdfBytes);
-            }
-          );
-
-          await executeCommand(command);
-        } catch (error) {
-          console.error('Error inserting text:', error);
-          message.error('插入文本失败');
-        } finally {
-          setToolMode('view');
-        }
-      },
-      onCancel: () => {
-        setToolMode('view');
-      },
+    // 设置编辑状态，显示内联文本框
+    setEditingText({
+      pageIndex,
+      position: { x, y },
+      content: '',
     });
-  }, [pdfBytes, objects.length, addObject, setToolMode, executeCommand, reloadPDF, addToHistory]);
+  }, [pdfBytes]);
+
+  // 完成文本编辑
+  const handleFinishEditingText = useCallback(async () => {
+    if (!editingText || !pdfBytes) return;
+
+    const { pageIndex, position, content } = editingText;
+
+    // 如果内容为空，取消编辑
+    if (!content || content.trim() === '') {
+      setEditingText(null);
+      setToolMode('view');
+      return;
+    }
+
+    try {
+      // 创建对象
+      const newObject: TextObject = {
+        id: `text-${Date.now()}-${Math.random()}`,
+        type: 'text',
+        pageIndex,
+        position: { x: position.x, y: position.y },
+        size: { width: 200, height: 100 }, // 初始大小
+        zIndex: objects.length + 1,
+        selected: true,
+        content: content.trim(),
+        style: {
+          fontSize: 16,
+          color: '#000000',
+          fontFamily: 'sans-serif',
+          opacity: 1,
+        },
+      };
+
+      // 使用 TextInsertCommand 包装操作
+      const command = new TextInsertCommand(
+        newObject,
+        async (obj) => {
+          // onExecute: 仅添加对象到存储，不渲染到 PDF
+          addObject(obj);
+          markAsUnsaved();
+
+          // 添加到历史记录
+          addToHistory({
+            type: 'text-insert',
+            timestamp: Date.now(),
+            data: {
+              pageIndex: obj.pageIndex,
+              text: obj.content,
+              x: obj.position.x,
+              y: obj.position.y,
+              fontSize: obj.style.fontSize,
+              color: {
+                r: parseInt(obj.style.color.slice(1, 3), 16) / 255,
+                g: parseInt(obj.style.color.slice(3, 5), 16) / 255,
+                b: parseInt(obj.style.color.slice(5, 7), 16) / 255,
+              },
+            },
+          });
+
+          message.success('文本已插入，可拖拽调整位置');
+        },
+        async (id) => {
+          // onUndo: 从对象存储移除
+          useObjectStore.getState().deleteObject(id);
+          markAsUnsaved();
+        }
+      );
+
+      await executeCommand(command);
+    } catch (error) {
+      console.error('Error inserting text:', error);
+      message.error('插入文本失败');
+    } finally {
+      setEditingText(null);
+      setToolMode('view');
+    }
+  }, [editingText, pdfBytes, objects.length, addObject, setToolMode, executeCommand, addToHistory, markAsUnsaved]);
+
+  // 取消文本编辑
+  const handleCancelEditingText = useCallback(() => {
+    setEditingText(null);
+    setToolMode('view');
+  }, [setToolMode]);
 
   // 保存对象到 PDF
   const saveObjectToPDF = useCallback(async (object: InsertedObject) => {
@@ -1000,6 +992,10 @@ const App: React.FC = () => {
               onHighlightRegion={handleAddHighlight}
               onInsertImageAtPosition={handleInsertImageAtPosition}
               onInsertTextAtPosition={handleInsertTextAtPosition}
+              editingText={editingText}
+              onEditingTextChange={setEditingText}
+              onFinishEditingText={handleFinishEditingText}
+              onCancelEditingText={handleCancelEditingText}
             />
           ) : (
             <Empty

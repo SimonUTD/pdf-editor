@@ -3,6 +3,7 @@ import { Spin, message } from 'antd';
 import { PDFRenderer } from '@/services/pdfRenderer';
 import { useUIStore } from '@/stores';
 import { TextLayer } from './TextLayer';
+import { ObjectLayer } from './ObjectLayer';
 import { useTextSelection } from '@/hooks/useTextSelection';
 
 interface PDFCanvasProps {
@@ -10,6 +11,20 @@ interface PDFCanvasProps {
   pageNumber: number;
   onEraseRegion?: (x: number, y: number, width: number, height: number) => Promise<void>;
   onHighlightRegion?: (x: number, y: number, width: number, height: number) => Promise<void>;
+  onInsertImageAtPosition?: (pageIndex: number, x: number, y: number) => void;
+  onInsertTextAtPosition?: (pageIndex: number, x: number, y: number) => void;
+  editingText?: {
+    pageIndex: number;
+    position: { x: number; y: number };
+    content: string;
+  } | null;
+  onEditingTextChange?: (editing: {
+    pageIndex: number;
+    position: { x: number; y: number };
+    content: string;
+  } | null) => void;
+  onFinishEditingText?: () => void;
+  onCancelEditingText?: () => void;
 }
 
 export const PDFCanvas: React.FC<PDFCanvasProps> = ({
@@ -17,6 +32,12 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
   pageNumber,
   onEraseRegion,
   onHighlightRegion,
+  onInsertImageAtPosition,
+  onInsertTextAtPosition,
+  editingText,
+  onEditingTextChange,
+  onFinishEditingText,
+  onCancelEditingText,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -103,7 +124,27 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
   }, [isDragging, dragStart, dragEnd, toolMode]);
 
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (toolMode === 'view' || !containerRef.current) return;
+    if (!containerRef.current) return;
+
+    // Handle insertion modes
+    if (toolMode === 'insert-image') {
+      const rect = containerRef.current.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / zoom;
+      const y = (e.clientY - rect.top) / zoom;
+      onInsertImageAtPosition?.(pageNumber - 1, x, y);
+      return;
+    }
+
+    if (toolMode === 'insert-text') {
+      const rect = containerRef.current.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / zoom;
+      const y = (e.clientY - rect.top) / zoom;
+      onInsertTextAtPosition?.(pageNumber - 1, x, y);
+      return;
+    }
+
+    // Handle drawing modes
+    if (toolMode === 'view') return;
 
     const rect = containerRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -169,6 +210,8 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
     if (toolMode === 'view') return 'default';
     if (toolMode === 'erase') return 'crosshair';
     if (toolMode === 'highlight') return 'crosshair';
+    if (toolMode === 'insert-image') return 'cell';
+    if (toolMode === 'insert-text') return 'text';
     return 'default';
   };
 
@@ -224,6 +267,54 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
         />
       )}
 
+      {/* 对象层 - 插入的图片和文本 */}
+      {!loading && (
+        <ObjectLayer
+          pageIndex={pageNumber - 1}
+          pdfZoom={zoom}
+        />
+      )}
+
+      {/* 内联文本编辑器 */}
+      {!loading && editingText && editingText.pageIndex === pageNumber - 1 && (
+        <textarea
+          autoFocus
+          defaultValue={editingText.content}
+          onChange={(e) => onEditingTextChange?.({
+            ...editingText,
+            content: e.target.value,
+          })}
+          onBlur={onFinishEditingText}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              e.preventDefault();
+              onCancelEditingText?.();
+            } else if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              onFinishEditingText?.();
+            }
+          }}
+          style={{
+            position: 'absolute',
+            left: editingText.position.x * zoom,
+            top: editingText.position.y * zoom,
+            width: 300,
+            height: 100,
+            fontSize: 16,
+            fontFamily: 'sans-serif',
+            color: '#000000',
+            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            border: '2px solid #52c41a',
+            borderRadius: 4,
+            padding: 8,
+            resize: 'both',
+            zIndex: 1000,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          }}
+          placeholder="输入文本内容... (按 Enter 确认，ESC 取消)"
+        />
+      )}
+
       {/* 交互覆盖层 */}
       {!loading && canvasSize.width > 0 && (
         <canvas
@@ -246,8 +337,13 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
             position: 'absolute',
             top: 10,
             left: 10,
-            backgroundColor: toolMode === 'erase' ? '#ff4d4f' : '#ffec3d',
-            color: toolMode === 'erase' ? '#fff' : '#000',
+            backgroundColor:
+              toolMode === 'erase' ? '#ff4d4f' :
+              toolMode === 'highlight' ? '#ffec3d' :
+              toolMode === 'insert-image' ? '#1890ff' :
+              toolMode === 'insert-text' ? '#52c41a' : '#999',
+            color:
+              toolMode === 'erase' || toolMode === 'insert-image' ? '#fff' : '#000',
             padding: '6px 12px',
             borderRadius: 4,
             fontSize: 12,
@@ -256,7 +352,10 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
             pointerEvents: 'none',
           }}
         >
-          {toolMode === 'erase' ? '擦除模式' : '高亮模式'} - 拖拽鼠标画框
+          {toolMode === 'erase' ? '擦除模式 - 拖拽鼠标画框' :
+           toolMode === 'highlight' ? '高亮模式 - 拖拽鼠标画框' :
+           toolMode === 'insert-image' ? '插入图片模式 - 点击PDF位置插入' :
+           toolMode === 'insert-text' ? '插入文本模式 - 点击PDF位置插入' : ''}
         </div>
       )}
     </div>

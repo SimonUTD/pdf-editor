@@ -77,6 +77,10 @@ export const messages = {
   'Add Header/Footer': '添加页眉页脚',
   'Replace Page': '替换页面',
 
+  // 基本术语
+  'Header': '页眉',
+  'Footer': '页脚',
+
   // 图片插入器消息
   'Please select an image file': '请选择图片文件',
   'Only PNG and JPG images are supported': '仅支持 PNG 和 JPG 图片',
@@ -165,6 +169,8 @@ export const messages = {
   'Top Right': '右上',
   'Bottom Left': '左下',
   'Bottom Right': '右下',
+  'Top': '顶部',
+  'Bottom': '底部',
 };
 
 /**
