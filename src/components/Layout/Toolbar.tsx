@@ -172,7 +172,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           </Space>
         </Col>
 
-        <Divider type="vertical" />
+        <Divider orientation="vertical" />
 
         {/* 撤销/重做区 */}
         <Col flex="0 0 auto">
@@ -198,7 +198,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           </Space>
         </Col>
 
-        <Divider type="vertical" />
+        <Divider orientation="vertical" />
 
         {/* 插入操作区 */}
         <Col flex="0 0 auto">
@@ -222,7 +222,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           </Space>
         </Col>
 
-        <Divider type="vertical" />
+        <Divider orientation="vertical" />
 
         {/* 工具模式区 */}
         <Col flex="0 0 auto">
@@ -250,7 +250,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           </Space>
         </Col>
 
-        <Divider type="vertical" />
+        <Divider orientation="vertical" />
 
         {/* 更多工具区 */}
         <Col flex="0 0 auto">
@@ -261,7 +261,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           </Dropdown>
         </Col>
 
-        <Divider type="vertical" />
+        <Divider orientation="vertical" />
 
         {/* 导出区 */}
         <Col flex="0 0 auto">
@@ -272,7 +272,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           </Dropdown>
         </Col>
 
-        <Divider type="vertical" />
+        <Divider orientation="vertical" />
 
         {/* 文件名和缩放 */}
         <Col flex="1 1 auto" style={{ overflow: 'hidden', textAlign: 'right' }}>

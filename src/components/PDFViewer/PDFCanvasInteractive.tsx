@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Spin, message } from 'antd';
+import { Spin, App } from 'antd';
 import { PDFRenderer } from '@/services/pdfRenderer';
 import { useUIStore } from '@/stores';
 import { TextLayer } from './TextLayer';
@@ -45,6 +45,7 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
   onObjectResizeComplete,
   onObjectRotateComplete,
 }) => {
+  const { message } = App.useApp();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -165,6 +166,7 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
       const x = (e.clientX - rect.left) / zoom;
       const y = (e.clientY - rect.top) / zoom;
       onInsertImageAtPosition?.(pageNumber - 1, x, y);
+      e.stopPropagation();
       return;
     }
 
@@ -173,6 +175,7 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
       const x = (e.clientX - rect.left) / zoom;
       const y = (e.clientY - rect.top) / zoom;
       onInsertTextAtPosition?.(pageNumber - 1, x, y);
+      e.stopPropagation();
       return;
     }
 

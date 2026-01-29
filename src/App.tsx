@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { ConfigProvider, theme, Empty, message, Modal, Input } from 'antd';
+import { ConfigProvider, App as AntdApp, theme, Empty, Modal, Input } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import { MainLayout } from './components/Layout/MainLayout';
 import { Sidebar } from './components/PDFViewer/Sidebar';
@@ -33,7 +33,8 @@ import {
   type Command,
 } from './commands';
 
-const App: React.FC = () => {
+const AppContent: React.FC = () => {
+  const { message } = AntdApp.useApp();
   const { t } = useI18n();
   const { pdfDocument, filePath, totalPages, loadPDF } = usePDFStore();
   const { selectedPageIndex, selectPage, toolMode, setToolMode } = useUIStore();
@@ -1012,112 +1013,122 @@ const App: React.FC = () => {
   const fileName = filePath ? filePath.split('/').pop() || filePath.split('\\').pop() : null;
 
   return (
+    <>
+      <MainLayout
+          fileName={fileName || null}
+          hasUnsavedChanges={hasUnsavedChanges}
+          canSave={!!pdfDocument}
+          onOpenFile={handleOpenFile}
+          onSave={handleSave}
+          onSaveAs={handleSaveAs}
+          onPrint={handlePrint}
+          onUndo={undo}
+          onRedo={redo}
+          canUndo={commandIndex >= 0}
+          canRedo={commandIndex < commandHistory.length - 1}
+          onInsertImage={() => {
+            setToolMode('insert-image');
+            message.info('点击 PDF 位置插入图片');
+          }}
+          onInsertText={() => {
+            setToolMode('insert-text');
+            message.info('点击 PDF 位置插入文本');
+          }}
+          onExportAsImages={handleExportAsImages}
+          onExportAsText={handleExportAsText}
+          onExportAsWord={handleExportAsWord}
+          onMergePDFs={() => setPdfMergerVisible(true)}
+          onAddWatermark={() => setWatermarkEditorVisible(true)}
+          onAddHeaderFooter={() => setHeaderFooterEditorVisible(true)}
+          onReplacePage={() => setPageReplacerVisible(true)}
+          onReversePages={handleReversePages}
+          sidebar={
+            <Sidebar
+              pdfDocument={pdfDocument}
+              totalPages={totalPages}
+              onDeletePage={handleDeletePage}
+              onInsertBlankPage={handleInsertBlankPage}
+            />
+          }
+          content={
+            pdfDocument ? (
+              <PDFCanvas
+                pdfDocument={pdfDocument}
+                pageNumber={selectedPageIndex + 1}
+                onEraseRegion={handleEraseContent}
+                onHighlightRegion={handleAddHighlight}
+                onInsertImageAtPosition={handleInsertImageAtPosition}
+                onInsertTextAtPosition={handleInsertTextAtPosition}
+                editingText={editingText}
+                onEditingTextChange={setEditingText}
+                onFinishEditingText={handleFinishEditingText}
+                onCancelEditingText={handleCancelEditingText}
+                onObjectMoveComplete={handleObjectMoveComplete}
+                onObjectResizeComplete={handleObjectResizeComplete}
+                onObjectRotateComplete={handleObjectRotateComplete}
+              />
+            ) : (
+              <Empty
+                description={getMessage('Open a PDF file to get started')}
+                style={{ marginTop: 100 }}
+              />
+            )
+          }
+        />
+
+        <ImageInserter
+          visible={imageInserterVisible}
+          onClose={() => setImageInserterVisible(false)}
+          onInsert={handleInsertImage}
+        />
+
+        <TextInserter
+          visible={textInserterVisible}
+          onClose={() => setTextInserterVisible(false)}
+          onInsert={handleInsertText}
+        />
+
+        <PDFMerger
+          visible={pdfMergerVisible}
+          onClose={() => setPdfMergerVisible(false)}
+          onMerge={handleMergePDFs}
+        />
+
+        <WatermarkEditor
+          visible={watermarkEditorVisible}
+          onClose={() => setWatermarkEditorVisible(false)}
+          onAddTextWatermark={handleAddTextWatermark}
+          onAddImageWatermark={handleAddImageWatermark}
+        />
+
+        <HeaderFooterEditor
+          visible={headerFooterEditorVisible}
+          onClose={() => setHeaderFooterEditorVisible(false)}
+          onAddHeader={handleAddHeader}
+          onAddFooter={handleAddFooter}
+        />
+
+        <PageReplacer
+          visible={pageReplacerVisible}
+          currentPageNumber={selectedPageIndex + 1}
+          onClose={() => setPageReplacerVisible(false)}
+          onReplace={handleReplacePage}
+        />
+      </>
+    );
+  };
+
+const App: React.FC = () => {
+  return (
     <ConfigProvider
       locale={zhCN}
       theme={{
         algorithm: theme.defaultAlgorithm,
       }}
     >
-      <MainLayout
-        fileName={fileName || null}
-        hasUnsavedChanges={hasUnsavedChanges}
-        canSave={!!pdfDocument}
-        onOpenFile={handleOpenFile}
-        onSave={handleSave}
-        onSaveAs={handleSaveAs}
-        onPrint={handlePrint}
-        onUndo={undo}
-        onRedo={redo}
-        canUndo={commandIndex >= 0}
-        canRedo={commandIndex < commandHistory.length - 1}
-        onInsertImage={() => {
-          setToolMode('insert-image');
-          message.info('点击 PDF 位置插入图片');
-        }}
-        onInsertText={() => {
-          setToolMode('insert-text');
-          message.info('点击 PDF 位置插入文本');
-        }}
-        onExportAsImages={handleExportAsImages}
-        onExportAsText={handleExportAsText}
-        onExportAsWord={handleExportAsWord}
-        onMergePDFs={() => setPdfMergerVisible(true)}
-        onAddWatermark={() => setWatermarkEditorVisible(true)}
-        onAddHeaderFooter={() => setHeaderFooterEditorVisible(true)}
-        onReplacePage={() => setPageReplacerVisible(true)}
-        onReversePages={handleReversePages}
-        sidebar={
-          <Sidebar
-            pdfDocument={pdfDocument}
-            totalPages={totalPages}
-            onDeletePage={handleDeletePage}
-            onInsertBlankPage={handleInsertBlankPage}
-          />
-        }
-        content={
-          pdfDocument ? (
-            <PDFCanvas
-              pdfDocument={pdfDocument}
-              pageNumber={selectedPageIndex + 1}
-              onEraseRegion={handleEraseContent}
-              onHighlightRegion={handleAddHighlight}
-              onInsertImageAtPosition={handleInsertImageAtPosition}
-              onInsertTextAtPosition={handleInsertTextAtPosition}
-              editingText={editingText}
-              onEditingTextChange={setEditingText}
-              onFinishEditingText={handleFinishEditingText}
-              onCancelEditingText={handleCancelEditingText}
-              onObjectMoveComplete={handleObjectMoveComplete}
-              onObjectResizeComplete={handleObjectResizeComplete}
-              onObjectRotateComplete={handleObjectRotateComplete}
-            />
-          ) : (
-            <Empty
-              description={getMessage('Open a PDF file to get started')}
-              style={{ marginTop: 100 }}
-            />
-          )
-        }
-      />
-
-      <ImageInserter
-        visible={imageInserterVisible}
-        onClose={() => setImageInserterVisible(false)}
-        onInsert={handleInsertImage}
-      />
-
-      <TextInserter
-        visible={textInserterVisible}
-        onClose={() => setTextInserterVisible(false)}
-        onInsert={handleInsertText}
-      />
-
-      <PDFMerger
-        visible={pdfMergerVisible}
-        onClose={() => setPdfMergerVisible(false)}
-        onMerge={handleMergePDFs}
-      />
-
-      <WatermarkEditor
-        visible={watermarkEditorVisible}
-        onClose={() => setWatermarkEditorVisible(false)}
-        onAddTextWatermark={handleAddTextWatermark}
-        onAddImageWatermark={handleAddImageWatermark}
-      />
-
-      <HeaderFooterEditor
-        visible={headerFooterEditorVisible}
-        onClose={() => setHeaderFooterEditorVisible(false)}
-        onAddHeader={handleAddHeader}
-        onAddFooter={handleAddFooter}
-      />
-
-      <PageReplacer
-        visible={pageReplacerVisible}
-        currentPageNumber={selectedPageIndex + 1}
-        onClose={() => setPageReplacerVisible(false)}
-        onReplace={handleReplacePage}
-      />
+      <AntdApp>
+        <AppContent />
+      </AntdApp>
     </ConfigProvider>
   );
 };

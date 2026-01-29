@@ -65,7 +65,7 @@ export const PageThumbnail: React.FC<PageThumbnailProps> = ({
           border: isSelected ? '2px solid #1890ff' : '1px solid #d9d9d9',
           cursor: 'pointer',
         }}
-        bodyStyle={{ padding: 8 }}
+        styles={{ body: { padding: 8 } }}
       >
         {loading ? (
           <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
