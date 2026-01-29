@@ -63,6 +63,24 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
     }
   }, [editingText, pageNumber]);
 
+  // Detect clicks outside textarea to finish editing
+  useEffect(() => {
+    if (!editingText || editingText.pageIndex !== pageNumber - 1) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      const textarea = textareaRef.current;
+      if (textarea && !textarea.contains(e.target as Node)) {
+        console.log('Clicked outside textarea, finishing editing');
+        onFinishEditingText?.();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [editingText, pageNumber, onFinishEditingText]);
+
   // 拖拽状态
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
@@ -303,12 +321,6 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
             ...editingText,
             content: e.target.value,
           })}
-          onBlur={() => {
-            // Add delay to prevent immediate blur on render
-            setTimeout(() => {
-              onFinishEditingText?.();
-            }, 150);
-          }}
           onKeyDown={(e) => {
             if (e.key === 'Escape') {
               e.preventDefault();
