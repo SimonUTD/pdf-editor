@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { ConfigProvider, App as AntdApp, theme, Empty, Modal, Input } from 'antd';
+import { ConfigProvider, theme, Empty, Modal, Input, message } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import { MainLayout } from './components/Layout/MainLayout';
 import { Sidebar } from './components/PDFViewer/Sidebar';
@@ -33,8 +33,7 @@ import {
   type Command,
 } from './commands';
 
-const AppContent: React.FC = () => {
-  const { message } = AntdApp.useApp();
+const App: React.FC = () => {
   const { t } = useI18n();
   const { pdfDocument, filePath, totalPages, loadPDF } = usePDFStore();
   const { selectedPageIndex, selectPage, toolMode, setToolMode } = useUIStore();
@@ -1076,49 +1075,49 @@ const AppContent: React.FC = () => {
           }
         />
 
-        <ImageInserter
-          visible={imageInserterVisible}
-          onClose={() => setImageInserterVisible(false)}
-          onInsert={handleInsertImage}
-        />
+      <ImageInserter
+        visible={imageInserterVisible}
+        onClose={() => setImageInserterVisible(false)}
+        onInsert={handleInsertImage}
+      />
 
-        <TextInserter
-          visible={textInserterVisible}
-          onClose={() => setTextInserterVisible(false)}
-          onInsert={handleInsertText}
-        />
+      <TextInserter
+        visible={textInserterVisible}
+        onClose={() => setTextInserterVisible(false)}
+        onInsert={handleInsertText}
+      />
 
-        <PDFMerger
-          visible={pdfMergerVisible}
-          onClose={() => setPdfMergerVisible(false)}
-          onMerge={handleMergePDFs}
-        />
+      <PDFMerger
+        visible={pdfMergerVisible}
+        onClose={() => setPdfMergerVisible(false)}
+        onMerge={handleMergePDFs}
+      />
 
-        <WatermarkEditor
-          visible={watermarkEditorVisible}
-          onClose={() => setWatermarkEditorVisible(false)}
-          onAddTextWatermark={handleAddTextWatermark}
-          onAddImageWatermark={handleAddImageWatermark}
-        />
+      <WatermarkEditor
+        visible={watermarkEditorVisible}
+        onClose={() => setWatermarkEditorVisible(false)}
+        onAddTextWatermark={handleAddTextWatermark}
+        onAddImageWatermark={handleAddImageWatermark}
+      />
 
-        <HeaderFooterEditor
-          visible={headerFooterEditorVisible}
-          onClose={() => setHeaderFooterEditorVisible(false)}
-          onAddHeader={handleAddHeader}
-          onAddFooter={handleAddFooter}
-        />
+      <HeaderFooterEditor
+        visible={headerFooterEditorVisible}
+        onClose={() => setHeaderFooterEditorVisible(false)}
+        onAddHeader={handleAddHeader}
+        onAddFooter={handleAddFooter}
+      />
 
-        <PageReplacer
-          visible={pageReplacerVisible}
-          currentPageNumber={selectedPageIndex + 1}
-          onClose={() => setPageReplacerVisible(false)}
-          onReplace={handleReplacePage}
-        />
-      </>
-    );
-  };
-
-const App: React.FC = () => {
+      <PageReplacer
+        visible={pageReplacerVisible}
+        currentPageNumber={selectedPageIndex + 1}
+        onClose={() => setPageReplacerVisible(false)}
+        onReplace={handleReplacePage}
+      />
+    </>
+  );
+};
+// Wrap app with ConfigProvider
+const AppWrapper: React.FC = () => {
   return (
     <ConfigProvider
       locale={zhCN}
@@ -1126,11 +1125,9 @@ const App: React.FC = () => {
         algorithm: theme.defaultAlgorithm,
       }}
     >
-      <AntdApp>
-        <AppContent />
-      </AntdApp>
+      <App />
     </ConfigProvider>
   );
 };
 
-export default App;
+export default AppWrapper;
