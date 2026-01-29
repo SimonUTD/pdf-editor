@@ -33,6 +33,7 @@ export const DraggableObject: React.FC<DraggableObjectProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [isRotating, setIsRotating] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [resizeHandle, setResizeHandle] = useState<ResizeHandle | null>(null);
   const [startSize, setStartSize] = useState({ width: 0, height: 0 });
@@ -45,9 +46,21 @@ export const DraggableObject: React.FC<DraggableObjectProps> = ({
     if ((e.target as HTMLElement).dataset.handle) {
       return;
     }
+
+    // For text objects, if in edit mode, don't start drag
+    if (object.type === 'text' && isEditing) {
+      e.stopPropagation();
+      return;
+    }
+
     e.stopPropagation(); // Prevent triggering PDF region selection
     setIsDragging(true);
     onSelect(object.id);
+
+    // For text objects, also enter edit mode on click
+    if (object.type === 'text') {
+      setIsEditing(true);
+    }
 
     const rect = elementRef.current!.getBoundingClientRect();
     setDragOffset({
@@ -256,7 +269,7 @@ export const DraggableObject: React.FC<DraggableObjectProps> = ({
   // Keyboard shortcuts: Delete to delete, ESC to deselect
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!object.selected) return;
+      if (!object.selected || isEditing) return;
 
       // Support both Delete (Windows) and Backspace (macOS) keys
       if (e.key === 'Delete' || e.key === 'Backspace') {
@@ -272,7 +285,7 @@ export const DraggableObject: React.FC<DraggableObjectProps> = ({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [object.selected, onDelete, onSelect]);
+  }, [object.selected, isEditing, onDelete, onSelect]);
 
   const renderContent = () => {
     if (object.type === 'image') {
@@ -294,6 +307,54 @@ export const DraggableObject: React.FC<DraggableObjectProps> = ({
     } else {
       return (
         <div
+          contentEditable={isEditing}
+          suppressContentEditableWarning
+          onInput={(e) => {
+            const newText = (e.target as HTMLDivElement).innerText;
+            onUpdate({
+              content: newText,
+            });
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              e.preventDefault();
+              setIsEditing(false);
+              onSelect(null);
+            } else if (e.key === 'Enter' && !e.shiftKey) {
+              // Don't prevent default during IME composition (e.g., Chinese input)
+              if (!(e.nativeEvent as any).isComposing) {
+                e.preventDefault();
+                setIsEditing(false);
+              }
+            }
+          }}
+          onBlur={() => {
+            // Auto-delete if empty
+            if (!object.content || object.content.trim() === '') {
+              onDelete();
+            } else {
+              setIsEditing(false);
+            }
+          }}
+          onPaste={(e) => {
+            // Force plain text paste
+            e.preventDefault();
+            const text = e.clipboardData.getData('text/plain');
+            document.execCommand('insertText', false, text);
+          }}
+          ref={(ref) => {
+            // Auto-focus when entering edit mode
+            if (ref && isEditing && document.activeElement !== ref) {
+              ref.focus();
+              // Place cursor at end
+              const range = document.createRange();
+              const selection = window.getSelection();
+              range.selectNodeContents(ref);
+              range.collapse(false);
+              selection?.removeAllRanges();
+              selection?.addRange(range);
+            }
+          }}
           style={{
             fontSize: `${object.style.fontSize * pdfZoom}px`,
             color: object.style.color,
@@ -301,13 +362,15 @@ export const DraggableObject: React.FC<DraggableObjectProps> = ({
             fontWeight: object.style.fontWeight,
             opacity: object.style.opacity ?? 1,
             whiteSpace: 'pre-wrap',
-            userSelect: 'text',
+            userSelect: isEditing ? 'text' : 'none',
             pointerEvents: 'auto',
-            cursor: 'text',
+            cursor: isEditing ? 'text' : 'default',
             minWidth: '50px',
             minHeight: '20px',
             width: '100%',
             height: '100%',
+            outline: isEditing ? '2px solid #1890ff' : 'none',
+            backgroundColor: isEditing ? 'rgba(24, 144, 255, 0.05)' : 'transparent',
           }}
         >
           {object.content}

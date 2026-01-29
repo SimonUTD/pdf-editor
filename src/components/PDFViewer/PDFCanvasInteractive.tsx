@@ -13,18 +13,6 @@ interface PDFCanvasProps {
   onHighlightRegion?: (x: number, y: number, width: number, height: number) => Promise<void>;
   onInsertImageAtPosition?: (pageIndex: number, x: number, y: number) => void;
   onInsertTextAtPosition?: (pageIndex: number, x: number, y: number) => void;
-  editingText?: {
-    pageIndex: number;
-    position: { x: number; y: number };
-    content: string;
-  } | null;
-  onEditingTextChange?: (editing: {
-    pageIndex: number;
-    position: { x: number; y: number };
-    content: string;
-  } | null) => void;
-  onFinishEditingText?: () => void;
-  onCancelEditingText?: () => void;
   onObjectMoveComplete?: (id: string, oldPos: { x: number; y: number }, newPos: { x: number; y: number }) => void;
   onObjectResizeComplete?: (id: string, oldPos: { x: number; y: number }, newPos: { x: number; y: number }, oldSize: { width: number; height: number }, newSize: { width: number; height: number }) => void;
   onObjectRotateComplete?: (id: string, oldRotation: number, newRotation: number) => void;
@@ -37,10 +25,6 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
   onHighlightRegion,
   onInsertImageAtPosition,
   onInsertTextAtPosition,
-  editingText,
-  onEditingTextChange,
-  onFinishEditingText,
-  onCancelEditingText,
   onObjectMoveComplete,
   onObjectResizeComplete,
   onObjectRotateComplete,
@@ -48,38 +32,11 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [loading, setLoading] = useState(true);
   const { zoom, toolMode } = useUIStore();
 
   // 启用文本选择复制
   useTextSelection();
-
-  // Auto-focus textarea when it appears
-  useEffect(() => {
-    if (editingText && editingText.pageIndex === pageNumber - 1 && textareaRef.current) {
-      console.log('Auto-focusing textarea');
-      textareaRef.current.focus();
-    }
-  }, [editingText, pageNumber]);
-
-  // Detect clicks outside textarea to finish editing
-  useEffect(() => {
-    if (!editingText || editingText.pageIndex !== pageNumber - 1) return;
-
-    const handleClickOutside = (e: MouseEvent) => {
-      const textarea = textareaRef.current;
-      if (textarea && !textarea.contains(e.target as Node)) {
-        console.log('Clicked outside textarea, finishing editing');
-        onFinishEditingText?.();
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [editingText, pageNumber, onFinishEditingText]);
 
   // 拖拽状态
   const [isDragging, setIsDragging] = useState(false);
@@ -310,56 +267,6 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
           onObjectMoveComplete={onObjectMoveComplete}
           onObjectResizeComplete={onObjectResizeComplete}
           onObjectRotateComplete={onObjectRotateComplete}
-        />
-      )}
-
-      {/* 内联文本编辑器 */}
-      {!loading && editingText && editingText.pageIndex === pageNumber - 1 && (
-        <textarea
-          ref={textareaRef}
-          autoFocus
-          value={editingText.content}
-          onChange={(e) => onEditingTextChange?.({
-            ...editingText,
-            content: e.target.value,
-          })}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape') {
-              e.preventDefault();
-              onCancelEditingText?.();
-            } else if (e.key === 'Enter' && !e.shiftKey) {
-              // Don't prevent default during IME composition (e.g., Chinese input)
-              if (!e.nativeEvent.isComposing) {
-                e.preventDefault();
-                onFinishEditingText?.();
-              }
-            }
-          }}
-          onCompositionEnd={(e) => {
-            // Update content after IME composition ends
-            onEditingTextChange?.({
-              ...editingText,
-              content: e.currentTarget.value,
-            });
-          }}
-          style={{
-            position: 'absolute',
-            left: editingText.position.x * zoom,
-            top: editingText.position.y * zoom,
-            width: 300,
-            height: 100,
-            fontSize: 16,
-            fontFamily: 'sans-serif',
-            color: '#000000',
-            backgroundColor: 'rgba(255, 255, 255, 0.95)',
-            border: '2px solid #52c41a',
-            borderRadius: 4,
-            padding: 8,
-            resize: 'both',
-            zIndex: 1000,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-          }}
-          placeholder="输入文本内容... (按 Enter 确认，ESC 取消)"
         />
       )}
 

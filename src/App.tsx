@@ -48,12 +48,6 @@ const App: React.FC = () => {
   const [headerFooterEditorVisible, setHeaderFooterEditorVisible] = useState(false);
   const [pageReplacerVisible, setPageReplacerVisible] = useState(false);
 
-  // Inline text editing state
-  const [editingText, setEditingText] = useState<{
-    pageIndex: number;
-    position: { x: number; y: number };
-    content: string;
-  } | null>(null);
 
   // Command history for undo/redo
   const [commandHistory, setCommandHistory] = useState<Command[]>([]);
@@ -501,105 +495,69 @@ const App: React.FC = () => {
     input.click();
   }, [pdfBytes, objects.length, addObject, setToolMode, executeCommand, reloadPDF, addToHistory]);
 
-  // 插入文本到指定位置 (点击插入功能) - 使用内联编辑
-  const handleInsertTextAtPosition = useCallback((pageIndex: number, x: number, y: number) => {
+  // 插入文本到指定位置 (点击插入功能) - 立即创建 TextObject
+  const handleInsertTextAtPosition = useCallback(async (pageIndex: number, x: number, y: number) => {
     if (!pdfBytes) {
       message.error(getMessage('No PDF loaded'));
       return;
     }
 
-    // 设置编辑状态，显示内联文本框
-    setEditingText({
+    // 创建 TextObject
+    const newObject: TextObject = {
+      id: `text-${Date.now()}-${Math.random()}`,
+      type: 'text',
       pageIndex,
       position: { x, y },
+      size: { width: 200, height: 100 },
+      zIndex: objects.length + 1,
+      selected: true,
       content: '',
-    });
-  }, [pdfBytes]);
+      style: {
+        fontSize: 16,
+        color: '#000000',
+        fontFamily: 'sans-serif',
+        opacity: 1,
+      },
+    };
 
-  // 完成文本编辑
-  const handleFinishEditingText = useCallback(async () => {
-    if (!editingText || !pdfBytes) {
-      return;
-    }
+    // 使用 TextInsertCommand 包装操作
+    const command = new TextInsertCommand(
+      newObject,
+      async (obj) => {
+        addObject(obj);
+        markAsUnsaved();
 
-    const { pageIndex, position, content } = editingText;
-
-    // 如果内容为空，取消编辑
-    if (!content || content.trim() === '') {
-      setEditingText(null);
-      setToolMode('view');
-      return;
-    }
-
-    try {
-      // 创建对象
-      const newObject: TextObject = {
-        id: `text-${Date.now()}-${Math.random()}`,
-        type: 'text',
-        pageIndex,
-        position: { x: position.x, y: position.y },
-        size: { width: 200, height: 100 }, // 初始大小
-        zIndex: objects.length + 1,
-        selected: true,
-        content: content.trim(),
-        style: {
-          fontSize: 16,
-          color: '#000000',
-          fontFamily: 'sans-serif',
-          opacity: 1,
-        },
-      };
-
-      // 使用 TextInsertCommand 包装操作
-      const command = new TextInsertCommand(
-        newObject,
-        async (obj) => {
-          // onExecute: 仅添加对象到存储，不渲染到 PDF
-          addObject(obj);
-          markAsUnsaved();
-
-          // 添加到历史记录
-          addToHistory({
-            type: 'text-insert',
-            timestamp: Date.now(),
-            data: {
-              pageIndex: obj.pageIndex,
-              text: obj.content,
-              x: obj.position.x,
-              y: obj.position.y,
-              fontSize: obj.style.fontSize,
-              color: {
-                r: parseInt(obj.style.color.slice(1, 3), 16) / 255,
-                g: parseInt(obj.style.color.slice(3, 5), 16) / 255,
-                b: parseInt(obj.style.color.slice(5, 7), 16) / 255,
-              },
+        addToHistory({
+          type: 'text-insert',
+          timestamp: Date.now(),
+          data: {
+            pageIndex: obj.pageIndex,
+            text: obj.content,
+            x: obj.position.x,
+            y: obj.position.y,
+            fontSize: obj.style.fontSize,
+            color: {
+              r: parseInt(obj.style.color.slice(1, 3), 16) / 255,
+              g: parseInt(obj.style.color.slice(3, 5), 16) / 255,
+              b: parseInt(obj.style.color.slice(5, 7), 16) / 255,
             },
-          });
+          },
+        });
 
-          message.success('文本已插入，可拖拽调整位置');
-        },
-        async (id) => {
-          // onUndo: 从对象存储移除
-          useObjectStore.getState().deleteObject(id);
-          markAsUnsaved();
-        }
-      );
+        message.success('文本已插入，可直接编辑');
+      },
+      async (id) => {
+        useObjectStore.getState().deleteObject(id);
+        markAsUnsaved();
+      }
+    );
 
-      await executeCommand(command);
-    } catch (error) {
-      console.error('Error inserting text:', error);
-      message.error('插入文本失败');
-    } finally {
-      setEditingText(null);
-      setToolMode('view');
-    }
-  }, [editingText, pdfBytes, objects.length, addObject, setToolMode, executeCommand, addToHistory, markAsUnsaved]);
+    await executeCommand(command);
 
-  // 取消文本编辑
-  const handleCancelEditingText = useCallback(() => {
-    setEditingText(null);
+    // 退出插入模式
     setToolMode('view');
-  }, [setToolMode]);
+  }, [pdfBytes, objects.length, addObject, setToolMode, executeCommand, addToHistory, markAsUnsaved]);
+
 
   // Handle object move complete - create and execute move command
   const handleObjectMoveComplete = useCallback(async (
@@ -1058,10 +1016,6 @@ const App: React.FC = () => {
                 onHighlightRegion={handleAddHighlight}
                 onInsertImageAtPosition={handleInsertImageAtPosition}
                 onInsertTextAtPosition={handleInsertTextAtPosition}
-                editingText={editingText}
-                onEditingTextChange={setEditingText}
-                onFinishEditingText={handleFinishEditingText}
-                onCancelEditingText={handleCancelEditingText}
                 onObjectMoveComplete={handleObjectMoveComplete}
                 onObjectResizeComplete={handleObjectResizeComplete}
                 onObjectRotateComplete={handleObjectRotateComplete}
