@@ -310,10 +310,26 @@ export const DraggableObject: React.FC<DraggableObjectProps> = ({
           contentEditable={isEditing}
           suppressContentEditableWarning
           onInput={(e) => {
-            const newText = (e.target as HTMLDivElement).innerText;
+            const target = e.target as HTMLDivElement;
+            const newText = target.innerText;
+            console.log('Text input:', { newText });
+
+            // 先更新内容
             onUpdate({
               content: newText,
             });
+
+            // 关键修复：输入后立即将光标移动到末尾
+            setTimeout(() => {
+              const selection = window.getSelection();
+              if (selection) {
+                const range = document.createRange();
+                range.selectNodeContents(target);
+                range.collapse(false); // false = 折叠到末尾
+                selection.removeAllRanges();
+                selection.addRange(range);
+              }
+            }, 0);
           }}
           onKeyDown={(e) => {
             if (e.key === 'Escape') {
@@ -328,7 +344,21 @@ export const DraggableObject: React.FC<DraggableObjectProps> = ({
               }
             }
           }}
+          onFocus={(e) => {
+            console.log('Text focused, current content:', object.content);
+            // 当聚焦时，确保光标在末尾
+            const selection = window.getSelection();
+            if (selection) {
+              const range = document.createRange();
+              const target = e.target as HTMLDivElement;
+              range.selectNodeContents(target);
+              range.collapse(false); // false = 末尾
+              selection.removeAllRanges();
+              selection.addRange(range);
+            }
+          }}
           onBlur={() => {
+            console.log('Text blurred, final content:', object.content);
             // Auto-delete if empty
             if (!object.content || object.content.trim() === '') {
               onDelete();
@@ -341,19 +371,6 @@ export const DraggableObject: React.FC<DraggableObjectProps> = ({
             e.preventDefault();
             const text = e.clipboardData.getData('text/plain');
             document.execCommand('insertText', false, text);
-          }}
-          ref={(ref) => {
-            // Auto-focus when entering edit mode
-            if (ref && isEditing && document.activeElement !== ref) {
-              ref.focus();
-              // Place cursor at end
-              const range = document.createRange();
-              const selection = window.getSelection();
-              range.selectNodeContents(ref);
-              range.collapse(false);
-              selection?.removeAllRanges();
-              selection?.addRange(range);
-            }
           }}
           style={{
             fontSize: `${object.style.fontSize * pdfZoom}px`,
@@ -374,8 +391,6 @@ export const DraggableObject: React.FC<DraggableObjectProps> = ({
             // 修复文字倒序问题
             direction: 'ltr',
             unicodeBidi: 'plaintext',
-            textAlign: 'left',
-            writingMode: 'horizontal-tb',
           }}
         >
           {object.content}
@@ -542,6 +557,13 @@ export const DraggableObject: React.FC<DraggableObjectProps> = ({
       </div>
     );
   };
+
+  // DEBUG: 打印旋转角度
+  console.log('DraggableObject render:', {
+    objectId: object.id,
+    rotation: rotation,
+    content: object.content,
+  });
 
   return (
     <div
