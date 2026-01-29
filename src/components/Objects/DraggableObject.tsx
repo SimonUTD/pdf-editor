@@ -371,6 +371,11 @@ export const DraggableObject: React.FC<DraggableObjectProps> = ({
             height: '100%',
             outline: isEditing ? '2px solid #1890ff' : 'none',
             backgroundColor: isEditing ? 'rgba(24, 144, 255, 0.05)' : 'transparent',
+            // 修复文字倒序问题
+            direction: 'ltr',
+            unicodeBidi: 'plaintext',
+            textAlign: 'left',
+            writingMode: 'horizontal-tb',
           }}
         >
           {object.content}
