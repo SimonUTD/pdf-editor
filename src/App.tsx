@@ -23,6 +23,8 @@ import {
   ImageInsertCommand,
   TextInsertCommand,
   ObjectMoveCommand,
+  ObjectResizeCommand,
+  ObjectRotateCommand,
   ObjectDeleteCommand,
   PageDeleteCommand,
   PageInsertCommand,
@@ -597,6 +599,73 @@ const App: React.FC = () => {
     setToolMode('view');
   }, [setToolMode]);
 
+  // Handle object move complete - create and execute move command
+  const handleObjectMoveComplete = useCallback(async (
+    objectId: string,
+    oldPos: { x: number; y: number },
+    newPos: { x: number; y: number }
+  ) => {
+    const object = objects.find(o => o.id === objectId);
+    if (!object) return;
+
+    const command = new ObjectMoveCommand(
+      object,
+      oldPos,
+      newPos,
+      (id, position) => {
+        useObjectStore.getState().updateObject(id, { position });
+      }
+    );
+
+    await executeCommand(command);
+  }, [objects, executeCommand]);
+
+  // Handle object resize complete - create and execute resize command
+  const handleObjectResizeComplete = useCallback(async (
+    objectId: string,
+    oldPos: { x: number; y: number },
+    newPos: { x: number; y: number },
+    oldSize: { width: number; height: number },
+    newSize: { width: number; height: number }
+  ) => {
+    const object = objects.find(o => o.id === objectId);
+    if (!object) return;
+
+    const command = new ObjectResizeCommand(
+      object,
+      oldPos,
+      newPos,
+      oldSize,
+      newSize,
+      (id, updates) => {
+        useObjectStore.getState().updateObject(id, updates);
+      }
+    );
+
+    await executeCommand(command);
+  }, [objects, executeCommand]);
+
+  // Handle object rotate complete - create and execute rotate command
+  const handleObjectRotateComplete = useCallback(async (
+    objectId: string,
+    oldRotation: number,
+    newRotation: number
+  ) => {
+    const object = objects.find(o => o.id === objectId);
+    if (!object) return;
+
+    const command = new ObjectRotateCommand(
+      object,
+      oldRotation,
+      newRotation,
+      (id, rotation) => {
+        useObjectStore.getState().updateObject(id, { rotation });
+      }
+    );
+
+    await executeCommand(command);
+  }, [objects, executeCommand]);
+
   // 保存对象到 PDF
   const saveObjectToPDF = useCallback(async (object: InsertedObject) => {
     if (!pdfBytes) return;
@@ -996,6 +1065,9 @@ const App: React.FC = () => {
               onEditingTextChange={setEditingText}
               onFinishEditingText={handleFinishEditingText}
               onCancelEditingText={handleCancelEditingText}
+              onObjectMoveComplete={handleObjectMoveComplete}
+              onObjectResizeComplete={handleObjectResizeComplete}
+              onObjectRotateComplete={handleObjectRotateComplete}
             />
           ) : (
             <Empty

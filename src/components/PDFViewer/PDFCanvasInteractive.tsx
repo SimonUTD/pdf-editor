@@ -25,6 +25,9 @@ interface PDFCanvasProps {
   } | null) => void;
   onFinishEditingText?: () => void;
   onCancelEditingText?: () => void;
+  onObjectMoveComplete?: (id: string, oldPos: { x: number; y: number }, newPos: { x: number; y: number }) => void;
+  onObjectResizeComplete?: (id: string, oldPos: { x: number; y: number }, newPos: { x: number; y: number }, oldSize: { width: number; height: number }, newSize: { width: number; height: number }) => void;
+  onObjectRotateComplete?: (id: string, oldRotation: number, newRotation: number) => void;
 }
 
 export const PDFCanvas: React.FC<PDFCanvasProps> = ({
@@ -38,6 +41,9 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
   onEditingTextChange,
   onFinishEditingText,
   onCancelEditingText,
+  onObjectMoveComplete,
+  onObjectResizeComplete,
+  onObjectRotateComplete,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -272,6 +278,9 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
         <ObjectLayer
           pageIndex={pageNumber - 1}
           pdfZoom={zoom}
+          onObjectMoveComplete={onObjectMoveComplete}
+          onObjectResizeComplete={onObjectResizeComplete}
+          onObjectRotateComplete={onObjectRotateComplete}
         />
       )}
 
@@ -279,7 +288,7 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
       {!loading && editingText && editingText.pageIndex === pageNumber - 1 && (
         <textarea
           autoFocus
-          defaultValue={editingText.content}
+          value={editingText.content}
           onChange={(e) => onEditingTextChange?.({
             ...editingText,
             content: e.target.value,
@@ -290,9 +299,19 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
               e.preventDefault();
               onCancelEditingText?.();
             } else if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              onFinishEditingText?.();
+              // Don't prevent default during IME composition (e.g., Chinese input)
+              if (!e.nativeEvent.isComposing) {
+                e.preventDefault();
+                onFinishEditingText?.();
+              }
             }
+          }}
+          onCompositionEnd={(e) => {
+            // Update content after IME composition ends
+            onEditingTextChange?.({
+              ...editingText,
+              content: e.currentTarget.value,
+            });
           }}
           style={{
             position: 'absolute',

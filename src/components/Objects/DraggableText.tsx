@@ -12,6 +12,9 @@ interface DraggableTextProps {
   onSelect: (id: string | null) => void;
   onDelete: () => void;
   pdfZoom: number;
+  onMoveComplete?: (id: string, oldPos: { x: number; y: number }, newPos: { x: number; y: number }) => void;
+  onResizeComplete?: (id: string, oldPos: { x: number; y: number }, newPos: { x: number; y: number }, oldSize: { width: number; height: number }, newSize: { width: number; height: number }) => void;
+  onRotateComplete?: (id: string, oldRotation: number, newRotation: number) => void;
 }
 
 export const DraggableText: React.FC<DraggableTextProps> = ({
@@ -20,6 +23,9 @@ export const DraggableText: React.FC<DraggableTextProps> = ({
   onSelect,
   onDelete,
   pdfZoom,
+  onMoveComplete,
+  onResizeComplete,
+  onRotateComplete,
 }) => {
   return (
     <DraggableObject
@@ -28,6 +34,9 @@ export const DraggableText: React.FC<DraggableTextProps> = ({
       onSelect={onSelect}
       onDelete={onDelete}
       pdfZoom={pdfZoom}
+      onMoveComplete={onMoveComplete}
+      onResizeComplete={onResizeComplete}
+      onRotateComplete={onRotateComplete}
     />
   );
 };

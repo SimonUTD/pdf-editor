@@ -12,6 +12,9 @@ interface DraggableObjectProps {
   onSelect: (id: string | null) => void;
   onDelete: () => void;
   pdfZoom: number;
+  onMoveComplete?: (id: string, oldPos: { x: number; y: number }, newPos: { x: number; y: number }) => void;
+  onResizeComplete?: (id: string, oldPos: { x: number; y: number }, newPos: { x: number; y: number }, oldSize: { width: number; height: number }, newSize: { width: number; height: number }) => void;
+  onRotateComplete?: (id: string, oldRotation: number, newRotation: number) => void;
 }
 
 type ResizeHandle = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w';
@@ -22,6 +25,9 @@ export const DraggableObject: React.FC<DraggableObjectProps> = ({
   onSelect,
   onDelete,
   pdfZoom,
+  onMoveComplete,
+  onResizeComplete,
+  onRotateComplete,
 }) => {
   const elementRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -31,6 +37,7 @@ export const DraggableObject: React.FC<DraggableObjectProps> = ({
   const [resizeHandle, setResizeHandle] = useState<ResizeHandle | null>(null);
   const [startSize, setStartSize] = useState({ width: 0, height: 0 });
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
+  const [startRotation, setStartRotation] = useState(0);
   const rotation = object.rotation || 0;
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -47,6 +54,9 @@ export const DraggableObject: React.FC<DraggableObjectProps> = ({
       x: e.clientX - rect.left,
       y: e.clientY - rect.top,
     });
+
+    // Store initial position for command
+    setStartPos({ x: object.position.x, y: object.position.y });
   };
 
   const handleResizeStart = (e: React.MouseEvent, handle: ResizeHandle) => {
@@ -72,6 +82,9 @@ export const DraggableObject: React.FC<DraggableObjectProps> = ({
     e.preventDefault();
     setIsRotating(true);
     onSelect(object.id);
+
+    // Store initial rotation for command
+    setStartRotation(object.rotation || 0);
   };
 
   // Handle dragging
@@ -99,6 +112,14 @@ export const DraggableObject: React.FC<DraggableObjectProps> = ({
 
     const handleMouseUp = () => {
       setIsDragging(false);
+
+      // Commit move command if position changed
+      if (onMoveComplete) {
+        const newPos = { x: object.position.x, y: object.position.y };
+        if (newPos.x !== startPos.x || newPos.y !== startPos.y) {
+          onMoveComplete(object.id, startPos, newPos);
+        }
+      }
     };
 
     document.addEventListener('mousemove', handleMouseMove);
@@ -164,6 +185,20 @@ export const DraggableObject: React.FC<DraggableObjectProps> = ({
     const handleMouseUp = () => {
       setIsResizing(false);
       setResizeHandle(null);
+
+      // Commit resize command if size or position changed
+      if (onResizeComplete) {
+        const newPos = { x: object.position.x, y: object.position.y };
+        const newSize = { width: object.size.width, height: object.size.height };
+        if (
+          newPos.x !== startPos.x ||
+          newPos.y !== startPos.y ||
+          newSize.width !== startSize.width ||
+          newSize.height !== startSize.height
+        ) {
+          onResizeComplete(object.id, startPos, newPos, startSize, newSize);
+        }
+      }
     };
 
     document.addEventListener('mousemove', handleMouseMove);
@@ -200,6 +235,14 @@ export const DraggableObject: React.FC<DraggableObjectProps> = ({
 
     const handleMouseUp = () => {
       setIsRotating(false);
+
+      // Commit rotate command if rotation changed
+      if (onRotateComplete) {
+        const newRotation = object.rotation || 0;
+        if (newRotation !== startRotation) {
+          onRotateComplete(object.id, startRotation, newRotation);
+        }
+      }
     };
 
     document.addEventListener('mousemove', handleMouseMove);
@@ -216,13 +259,8 @@ export const DraggableObject: React.FC<DraggableObjectProps> = ({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!object.selected) return;
 
-      // Ignore if typing in an input
-      const target = e.target as HTMLElement;
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
-        return;
-      }
-
-      if (e.key === 'Delete') {
+      // Support both Delete (Windows) and Backspace (macOS) keys
+      if (e.key === 'Delete' || e.key === 'Backspace') {
         e.preventDefault();
         if (confirm('确定要删除此对象吗？')) {
           onDelete();

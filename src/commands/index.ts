@@ -2,6 +2,8 @@ export type { BaseCommand, Command } from './BaseCommand';
 export { ImageInsertCommand } from './ImageInsertCommand';
 export { TextInsertCommand } from './TextInsertCommand';
 export { ObjectMoveCommand } from './ObjectMoveCommand';
+export { ObjectResizeCommand } from './ObjectResizeCommand';
+export { ObjectRotateCommand } from './ObjectRotateCommand';
 export { ObjectDeleteCommand } from './ObjectDeleteCommand';
 export { PageDeleteCommand } from './PageDeleteCommand';
 export { PageInsertCommand } from './PageInsertCommand';

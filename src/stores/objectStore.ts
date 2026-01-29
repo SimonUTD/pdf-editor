@@ -35,7 +35,14 @@ export const useObjectStore = create<ObjectStore>((set, get) => ({
     objects: state.objects.filter((obj) => obj.id !== id),
   })),
 
-  selectObject: (id) => set({ selectedObjectId: id }),
+  selectObject: (id) => set((state) => ({
+    selectedObjectId: id,
+    // Update selected flag on all objects
+    objects: state.objects.map((obj) => ({
+      ...obj,
+      selected: obj.id === id,
+    })),
+  })),
 
   clearObjects: () => set({ objects: [], selectedObjectId: null }),
 
