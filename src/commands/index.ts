@@ -7,6 +7,7 @@ export { ObjectRotateCommand } from './ObjectRotateCommand';
 export { ObjectDeleteCommand } from './ObjectDeleteCommand';
 export { PageDeleteCommand } from './PageDeleteCommand';
 export { PageInsertCommand } from './PageInsertCommand';
+export { PageRotateCommand } from './PageRotateCommand';
 export { EraseCommand } from './EraseCommand';
 export type { ErasePath } from './EraseCommand';
 export { HighlightCommand } from './HighlightCommand';

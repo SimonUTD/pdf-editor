@@ -9,6 +9,7 @@ import { useTextSelection } from '@/hooks/useTextSelection';
 interface PDFCanvasProps {
   pdfDocument: any;
   pageNumber: number;
+  rotation?: number; // 页面旋转角度 (0, 90, 180, 270)
   onEraseRegion?: (x: number, y: number, width: number, height: number) => Promise<void>;
   onHighlightRegion?: (x: number, y: number, width: number, height: number) => Promise<void>;
   onInsertImageAtPosition?: (pageIndex: number, x: number, y: number) => void;
@@ -21,6 +22,7 @@ interface PDFCanvasProps {
 export const PDFCanvas: React.FC<PDFCanvasProps> = ({
   pdfDocument,
   pageNumber,
+  rotation = 0,
   onEraseRegion,
   onHighlightRegion,
   onInsertImageAtPosition,
@@ -57,6 +59,7 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
 
         await PDFRenderer.renderPageToCanvas(page, canvasRef.current!, {
           scale: zoom,
+          rotation: rotation,
         });
 
         // 更新 canvas 尺寸

@@ -23,6 +23,9 @@ import {
   MoreOutlined,
   UndoOutlined,
   RedoOutlined,
+  RotateLeftOutlined,
+  RotateRightOutlined,
+  SyncOutlined,
 } from '@ant-design/icons';
 import { useUIStore } from '@/stores';
 import { translate } from '@/constants/translations';
@@ -44,6 +47,9 @@ interface ToolbarProps {
   onAddHeaderFooter: () => void;
   onReversePages: () => void;
   onReplacePage: () => void;
+  onRotatePageLeft?: () => void;
+  onRotatePageRight?: () => void;
+  onFlipPage?: () => void;
   onUndo?: () => void;
   onRedo?: () => void;
   canUndo?: boolean;
@@ -68,6 +74,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   onAddHeaderFooter,
   onReplacePage,
   onReversePages,
+  onRotatePageLeft,
+  onRotatePageRight,
+  onFlipPage,
   onUndo,
   onRedo,
   canUndo = false,
@@ -246,6 +255,41 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               style={toolMode === 'highlight' ? { backgroundColor: '#ffec3d', borderColor: '#ffec3d', color: '#000' } : {}}
             >
               {toolMode === 'highlight' ? '退出高亮' : '高亮'}
+            </Button>
+          </Space>
+        </Col>
+
+        <Divider orientation="vertical" />
+
+        {/* 页面旋转区 */}
+        <Col flex="0 0 auto">
+          <Space size="small">
+            <Button
+              size="small"
+              icon={<RotateLeftOutlined />}
+              onClick={onRotatePageLeft}
+              disabled={!canSave}
+              title="向左旋转90度"
+            >
+              左转
+            </Button>
+            <Button
+              size="small"
+              icon={<RotateRightOutlined />}
+              onClick={onRotatePageRight}
+              disabled={!canSave}
+              title="向右旋转90度"
+            >
+              右转
+            </Button>
+            <Button
+              size="small"
+              icon={<SyncOutlined />}
+              onClick={onFlipPage}
+              disabled={!canSave}
+              title="翻转180度"
+            >
+              翻转
             </Button>
           </Space>
         </Col>

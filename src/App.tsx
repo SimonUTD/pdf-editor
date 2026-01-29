@@ -28,6 +28,7 @@ import {
   ObjectDeleteCommand,
   PageDeleteCommand,
   PageInsertCommand,
+  PageRotateCommand,
   EraseCommand,
   HighlightCommand,
   type Command,
@@ -36,7 +37,16 @@ import {
 const App: React.FC = () => {
   const { t } = useI18n();
   const { pdfDocument, filePath, totalPages, loadPDF } = usePDFStore();
-  const { selectedPageIndex, selectPage, toolMode, setToolMode } = useUIStore();
+  const {
+    selectedPageIndex,
+    selectPage,
+    toolMode,
+    setToolMode,
+    getPageRotation,
+    rotatePageLeft,
+    rotatePageRight,
+    flipPage,
+  } = useUIStore();
   const { hasUnsavedChanges, markAsSaved, markAsUnsaved, addToHistory } = useEditStore();
   const { objects, addObject } = useObjectStore();
 
@@ -838,6 +848,46 @@ const App: React.FC = () => {
     }
   }, [pdfBytes, filePath, loadPDF, addToHistory, markAsUnsaved]);
 
+  // 页面旋转处理函数
+  const handleRotatePageLeft = useCallback(async () => {
+    const pageIndex = selectedPageIndex;
+    const oldRotation = getPageRotation(pageIndex);
+    const command = new PageRotateCommand(
+      pageIndex,
+      oldRotation,
+      (oldRotation - 90 + 360) % 360,
+      rotatePageLeft
+    );
+    await executeCommand(command);
+    message.success(`第 ${pageIndex + 1} 页向左旋转 90°`);
+  }, [selectedPageIndex, getPageRotation, rotatePageLeft, executeCommand]);
+
+  const handleRotatePageRight = useCallback(async () => {
+    const pageIndex = selectedPageIndex;
+    const oldRotation = getPageRotation(pageIndex);
+    const command = new PageRotateCommand(
+      pageIndex,
+      oldRotation,
+      (oldRotation + 90) % 360,
+      rotatePageRight
+    );
+    await executeCommand(command);
+    message.success(`第 ${pageIndex + 1} 页向右旋转 90°`);
+  }, [selectedPageIndex, getPageRotation, rotatePageRight, executeCommand]);
+
+  const handleFlipPage = useCallback(async () => {
+    const pageIndex = selectedPageIndex;
+    const oldRotation = getPageRotation(pageIndex);
+    const command = new PageRotateCommand(
+      pageIndex,
+      oldRotation,
+      (oldRotation + 180) % 360,
+      flipPage
+    );
+    await executeCommand(command);
+    message.success(`第 ${pageIndex + 1} 页已翻转`);
+  }, [selectedPageIndex, getPageRotation, flipPage, executeCommand]);
+
   const handleEraseContent = useCallback(async (x: number, y: number, width: number, height: number) => {
     if (!pdfBytes) return;
 
@@ -999,6 +1049,9 @@ const App: React.FC = () => {
           onAddHeaderFooter={() => setHeaderFooterEditorVisible(true)}
           onReplacePage={() => setPageReplacerVisible(true)}
           onReversePages={handleReversePages}
+          onRotatePageLeft={handleRotatePageLeft}
+          onRotatePageRight={handleRotatePageRight}
+          onFlipPage={handleFlipPage}
           sidebar={
             <Sidebar
               pdfDocument={pdfDocument}
@@ -1012,6 +1065,7 @@ const App: React.FC = () => {
               <PDFCanvas
                 pdfDocument={pdfDocument}
                 pageNumber={selectedPageIndex + 1}
+                rotation={getPageRotation(selectedPageIndex)}
                 onEraseRegion={handleEraseContent}
                 onHighlightRegion={handleAddHighlight}
                 onInsertImageAtPosition={handleInsertImageAtPosition}
