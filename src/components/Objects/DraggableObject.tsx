@@ -312,7 +312,6 @@ export const DraggableObject: React.FC<DraggableObjectProps> = ({
           onInput={(e) => {
             const target = e.target as HTMLDivElement;
             const newText = target.innerText;
-            console.log('Text input:', { newText });
 
             // 先更新内容
             onUpdate({
@@ -345,7 +344,6 @@ export const DraggableObject: React.FC<DraggableObjectProps> = ({
             }
           }}
           onFocus={(e) => {
-            console.log('Text focused, current content:', object.content);
             // 当聚焦时，确保光标在末尾
             const selection = window.getSelection();
             if (selection) {
@@ -358,7 +356,6 @@ export const DraggableObject: React.FC<DraggableObjectProps> = ({
             }
           }}
           onBlur={() => {
-            console.log('Text blurred, final content:', object.content);
             // Auto-delete if empty
             if (!object.content || object.content.trim() === '') {
               onDelete();
@@ -557,13 +554,6 @@ export const DraggableObject: React.FC<DraggableObjectProps> = ({
       </div>
     );
   };
-
-  // DEBUG: 打印旋转角度
-  console.log('DraggableObject render:', {
-    objectId: object.id,
-    rotation: rotation,
-    content: object.content,
-  });
 
   return (
     <div
