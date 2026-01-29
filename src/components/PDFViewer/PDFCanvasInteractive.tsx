@@ -306,7 +306,7 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
           onBlur={() => {
             // Add delay to prevent immediate blur on render
             setTimeout(() => {
-              onFinishEditingText();
+              onFinishEditingText?.();
             }, 150);
           }}
           onKeyDown={(e) => {
