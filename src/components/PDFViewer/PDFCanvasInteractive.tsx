@@ -82,7 +82,7 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [pdfDocument, pageNumber, zoom]);
+  }, [pdfDocument, pageNumber, zoom, rotation]);
 
   // 当拖拽状态改变时，绘制选择框
   useEffect(() => {

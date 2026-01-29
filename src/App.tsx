@@ -174,6 +174,16 @@ const App: React.FC = () => {
       const document = await PDFRenderer.loadDocument(getArrayBuffer(new Uint8Array(fileData.buffer)));
       const numPages = document.numPages;
 
+      // Initialize pageRotations with PDF's original rotation for each page
+      const rotations: number[] = [];
+      for (let i = 1; i <= numPages; i++) {
+        const page = await document.getPage(i);
+        // PDF pages have a rotation property (0, 90, 180, 270)
+        rotations.push((page as any).rotation || 0);
+      }
+      // Set the initial rotations in uiStore
+      useUIStore.setState({ pageRotations: rotations });
+
       loadPDF(fileData.filePath, document, numPages);
       setPdfBytes(new Uint8Array(fileData.buffer));
       markAsSaved();
