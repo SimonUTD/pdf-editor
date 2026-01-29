@@ -518,7 +518,9 @@ const App: React.FC = () => {
 
   // 完成文本编辑
   const handleFinishEditingText = useCallback(async () => {
-    if (!editingText || !pdfBytes) return;
+    if (!editingText || !pdfBytes) {
+      return;
+    }
 
     const { pageIndex, position, content } = editingText;
 

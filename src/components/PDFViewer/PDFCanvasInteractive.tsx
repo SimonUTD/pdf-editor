@@ -48,11 +48,20 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [loading, setLoading] = useState(true);
   const { zoom, toolMode } = useUIStore();
 
   // 启用文本选择复制
   useTextSelection();
+
+  // Auto-focus textarea when it appears
+  useEffect(() => {
+    if (editingText && editingText.pageIndex === pageNumber - 1 && textareaRef.current) {
+      console.log('Auto-focusing textarea');
+      textareaRef.current.focus();
+    }
+  }, [editingText, pageNumber]);
 
   // 拖拽状态
   const [isDragging, setIsDragging] = useState(false);
@@ -287,13 +296,19 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
       {/* 内联文本编辑器 */}
       {!loading && editingText && editingText.pageIndex === pageNumber - 1 && (
         <textarea
+          ref={textareaRef}
           autoFocus
           value={editingText.content}
           onChange={(e) => onEditingTextChange?.({
             ...editingText,
             content: e.target.value,
           })}
-          onBlur={onFinishEditingText}
+          onBlur={() => {
+            // Add delay to prevent immediate blur on render
+            setTimeout(() => {
+              onFinishEditingText();
+            }, 150);
+          }}
           onKeyDown={(e) => {
             if (e.key === 'Escape') {
               e.preventDefault();
