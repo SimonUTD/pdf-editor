@@ -15,9 +15,9 @@ export class PDFRenderer {
   static async loadDocument(data: ArrayBuffer) {
     const loadingTask = pdfjsLib.getDocument({
       data,
-      cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.120/',
-      cMapPacked: true,
-      standardFontDataUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.120/'
+      // 使用本地资源，不联网
+      useSystemFonts: true,
+      useWorkerFetch: false
     });
     return await loadingTask.promise;
   }
