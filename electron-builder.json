@@ -2,20 +2,55 @@
   "appId": "com.pdfeditor.app",
   "productName": "PDF Editor",
   "directories": {
-    "output": "release"
+    "output": "release",
+    "buildResources": "assets"
   },
   "files": [
     "dist/**/*",
     "dist-electron/**/*",
+    "node_modules/**/*",
     "package.json"
   ],
+  "mac": {
+    "target": ["dmg", "zip"],
+    "icon": "build/icon.icns",
+    "category": "public.app-category.productivity",
+    "hardenedRuntime": true,
+    "gatekeeperAssess": false
+  },
+  "dmg": {
+    "contents": [
+      {
+        "x": 130,
+        "y": 220
+      },
+      {
+        "x": 410,
+        "y": 220,
+        "type": "link",
+        "path": "/Applications"
+      }
+    ],
+    "window": {
+      "width": 540,
+      "height": 380
+    }
+  },
   "win": {
-    "target": ["nsis"],
+    "target": ["nsis", "portable", "zip"],
     "icon": "build/icon.ico"
   },
-  "mac": {
-    "target": ["dmg"],
-    "icon": "build/icon.icns",
-    "category": "public.app-category.productivity"
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "perMachine": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "installerLanguages": ["en_US", "zh_CN"],
+    "language": "2052"
+  },
+  "publish": {
+    "provider": "github",
+    "releaseType": "release"
   }
 }

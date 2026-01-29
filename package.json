@@ -5,11 +5,13 @@
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build && electron-builder",
+    "build": "tsc && vite build",
     "build:electron": "esbuild electron/main.ts electron/preload.ts --bundle --platform=node --outdir=dist-electron --external:electron",
     "preview": "vite preview",
     "electron:dev": "pnpm run build:electron && concurrently \"vite\" \"wait-on http://localhost:5173 && cross-env VITE_DEV_SERVER_URL=http://localhost:5173 electron dist-electron/main.js\"",
     "electron:build": "pnpm run build && pnpm run build:electron && electron-builder",
+    "package:mac": "electron-builder --mac",
+    "package:win": "electron-builder --win",
     "postinstall": "electron-builder install-app-deps"
   },
   "repository": {
