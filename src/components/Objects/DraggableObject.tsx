@@ -3,7 +3,7 @@
  * Handles mouse events for dragging, selection, deletion, resizing, and rotation
  */
 
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { InsertedObject } from '@/types/objects';
 
 interface DraggableObjectProps {
@@ -66,7 +66,6 @@ export const DraggableObject: React.FC<DraggableObjectProps> = ({
     setResizeHandle(handle);
     onSelect(object.id);
 
-    const rect = elementRef.current!.getBoundingClientRect();
     setStartSize({
       width: object.size.width,
       height: object.size.height,
@@ -129,7 +128,7 @@ export const DraggableObject: React.FC<DraggableObjectProps> = ({
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isDragging, dragOffset, onUpdate, pdfZoom]);
+  }, [isDragging, dragOffset, onUpdate, pdfZoom, onMoveComplete, object, startPos]);
 
   // Handle resizing
   useEffect(() => {
@@ -208,7 +207,7 @@ export const DraggableObject: React.FC<DraggableObjectProps> = ({
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isResizing, resizeHandle, startSize, startPos, object, pdfZoom, onUpdate]);
+  }, [isResizing, resizeHandle, startSize, startPos, object, pdfZoom, onUpdate, onResizeComplete]);
 
   // Handle rotation
   useEffect(() => {
@@ -252,7 +251,7 @@ export const DraggableObject: React.FC<DraggableObjectProps> = ({
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isRotating, onUpdate]);
+  }, [isRotating, onUpdate, onRotateComplete, object, startRotation]);
 
   // Keyboard shortcuts: Delete to delete, ESC to deselect
   useEffect(() => {
