@@ -35,7 +35,8 @@
       "Bash(npm run compile:*)",
       "Bash(npm run)",
       "WebSearch",
-      "Bash(codex:*)"
+      "Bash(codex:*)",
+      "Bash(npm run check)"
     ]
   }
 }
