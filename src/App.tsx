@@ -21,6 +21,7 @@ import { PDFCompressor } from './components/Editors/PDFCompressor';
 import { PDFOptimizer } from './components/Editors/PDFOptimizer';
 import { SignatureTool, SignatureOptions } from './components/Editors/SignatureTool';
 import { PasswordProtector, PDFPasswordProtectionOptions } from './components/Editors/PasswordProtector';
+import { PDFConverter } from './components/Editors/PDFConverter';
 import { PDFRenderer } from './services/pdfRenderer';
 import { PDFEditor } from './services/pdfEditor';
 import { ExportService } from './services/exportService';
@@ -83,6 +84,7 @@ const App: React.FC = () => {
   const [pdfOptimizerVisible, setPdfOptimizerVisible] = useState(false);
   const [signatureToolVisible, setSignatureToolVisible] = useState(false);
   const [passwordProtectorVisible, setPasswordProtectorVisible] = useState(false);
+  const [pdfConverterVisible, setPdfConverterVisible] = useState(false);
   const [pendingSignature, setPendingSignature] = useState<SignatureOptions | null>(null);
 
 
@@ -1027,6 +1029,22 @@ const App: React.FC = () => {
     }
   }, [pdfDocument, filePath]);
 
+  const handleExportAsHTML = useCallback(async () => {
+    if (!pdfDocument) {
+      message.error(getMessage('No PDF loaded'));
+      return;
+    }
+
+    try {
+      const fileName = filePath ? filePath.split('/').pop()?.replace('.pdf', '') || 'document' : 'document';
+      await ExportService.exportAsHTML(pdfDocument, fileName);
+      message.success('已导出为HTML文档');
+    } catch (error) {
+      console.error('Error exporting as HTML:', error);
+      message.error('导出HTML失败');
+    }
+  }, [pdfDocument, filePath]);
+
   const handleMergePDFs = useCallback(async (pdfBytesArray: Uint8Array[]) => {
     try {
       const mergedBytes = await PDFEditor.mergePDFs(pdfBytesArray);
@@ -1388,6 +1406,8 @@ const App: React.FC = () => {
           onExportAsImages={handleExportAsImages}
           onExportAsText={handleExportAsText}
           onExportAsWord={handleExportAsWord}
+          onExportAsHTML={handleExportAsHTML}
+          onShowPDFConverter={() => setPdfConverterVisible(true)}
           onMergePDFs={() => setPdfMergerVisible(true)}
           onAddWatermark={() => setWatermarkEditorVisible(true)}
           onAddHeaderFooter={() => setHeaderFooterEditorVisible(true)}
@@ -1553,6 +1573,13 @@ const App: React.FC = () => {
         onClose={() => setPasswordProtectorVisible(false)}
         pdfBytes={pdfBytes}
         onProtect={handleProtectPDF}
+      />
+
+      <PDFConverter
+        visible={pdfConverterVisible}
+        onClose={() => setPdfConverterVisible(false)}
+        pdfDocument={pdfDocument}
+        fileName={filePath || 'document'}
       />
     </>
   );

@@ -19,6 +19,8 @@ interface MainLayoutProps {
   onExportAsImages: () => void;
   onExportAsText: () => void;
   onExportAsWord: () => void;
+  onExportAsHTML?: () => void;
+  onShowPDFConverter?: () => void;
   onMergePDFs: () => void;
   onAddWatermark: () => void;
   onAddHeaderFooter: () => void;
@@ -59,6 +61,8 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   onExportAsImages,
   onExportAsText,
   onExportAsWord,
+  onExportAsHTML,
+  onShowPDFConverter,
   onMergePDFs,
   onAddWatermark,
   onAddHeaderFooter,
@@ -97,6 +101,8 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         onExportAsImages={onExportAsImages}
         onExportAsText={onExportAsText}
         onExportAsWord={onExportAsWord}
+        onExportAsHTML={onExportAsHTML}
+        onShowPDFConverter={onShowPDFConverter}
         onMergePDFs={onMergePDFs}
         onAddWatermark={onAddWatermark}
         onAddHeaderFooter={onAddHeaderFooter}

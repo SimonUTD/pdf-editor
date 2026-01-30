@@ -35,6 +35,7 @@ import {
   EyeOutlined,
   StopOutlined,
   FormOutlined,
+  Html5Outlined,
 } from '@ant-design/icons';
 import { useUIStore } from '@/stores';
 import { PageJumpControl } from './PageJumpControl';
@@ -52,6 +53,8 @@ interface ToolbarProps {
   onExportAsImages: () => void;
   onExportAsText: () => void;
   onExportAsWord: () => void;
+  onExportAsHTML?: () => void;
+  onShowPDFConverter?: () => void;
   onMergePDFs: () => void;
   onAddWatermark: () => void;
   onAddHeaderFooter: () => void;
@@ -90,6 +93,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   onExportAsImages,
   onExportAsText,
   onExportAsWord,
+  onExportAsHTML,
+  onShowPDFConverter,
   onMergePDFs,
   onAddWatermark,
   onAddHeaderFooter,
@@ -257,6 +262,12 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           <Button size="small" icon={<FileWordOutlined />} onClick={onExportAsWord} disabled={!canSave}>
             导出Word
           </Button>
+          <Button size="small" icon={<Html5Outlined />} onClick={onExportAsHTML} disabled={!canSave}>
+            导出HTML
+          </Button>
+          <Button size="small" icon={<SwapOutlined />} onClick={onShowPDFConverter} disabled={!canSave}>
+            PDF转换
+          </Button>
 
           <Divider orientation="vertical" style={{ margin: '0 8px' }} />
 
@@ -273,25 +284,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           <Button size="small" icon={<VerticalAlignTopOutlined />} onClick={onExtractPages} disabled={!canSave}>
             提取页面
           </Button>
-          <Button size="small" icon={<SwapOutlined />} disabled={!canSave} onClick={() => {}}>
-            PDF转换
-          </Button>
-          <Button size="small" icon={<FileImageOutlined />} disabled={!canSave} onClick={() => {}}>
-            图片转PDF
-          </Button>
-          <Button size="small" icon={<DownloadOutlined />} disabled={!canSave} onClick={() => {}}>
-            提取图像
-          </Button>
-
-          <Divider orientation="vertical" style={{ margin: '0 8px' }} />
-
-          <Text style={{ fontSize: 12, color: '#999', marginRight: 4 }}>编辑:</Text>
-          <Button size="small" icon={<ScissorOutlined />} disabled={!canSave} onClick={onSplitPDF}>
-            PDF拆分
-          </Button>
-          <Button size="small" icon={<VerticalAlignTopOutlined />} disabled={!canSave} onClick={onExtractPages}>
-            页面提取
-          </Button>
           <Button size="small" icon={<SwapOutlined />} disabled={!canSave} onClick={onReorderPages}>
             页面排序
           </Button>
@@ -305,17 +297,14 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           <Button size="small" icon={<CompressOutlined />} disabled={!canSave} onClick={onCompressPDF}>
             PDF压缩
           </Button>
-          <Button size="small" icon={<SafetyOutlined />} disabled={!canSave} onClick={() => {}}>
-            标记密文
+          <Button size="small" icon={<SettingOutlined />} disabled={!canSave} onClick={onOptimizePDF}>
+            PDF优化
           </Button>
           <Button size="small" icon={<KeyOutlined />} disabled={!canSave} onClick={onPasswordProtect}>
             密码保护
           </Button>
           <Button size="small" icon={<FormOutlined />} disabled={!canSave} onClick={onAddSignature}>
             PDF签名
-          </Button>
-          <Button size="small" icon={<SettingOutlined />} disabled={!canSave} onClick={onOptimizePDF}>
-            PDF优化
           </Button>
         </Space>
       </Row>

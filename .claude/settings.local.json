@@ -34,7 +34,8 @@
       "Bash(npx vite build:*)",
       "Bash(npm run compile:*)",
       "Bash(npm run)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(codex:*)"
     ]
   }
 }
