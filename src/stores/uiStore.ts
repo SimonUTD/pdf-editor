@@ -21,6 +21,7 @@ interface UIStore {
   zoomIn: () => void;
   zoomOut: () => void;
   resetZoom: () => void;
+  fitToPage: () => void; // "适应"按钮 - 切换到fit-page模式
   selectPage: (index: number) => void;
   setSidebarWidth: (width: number) => void;
   setToolMode: (mode: ToolMode) => void;
@@ -59,6 +60,8 @@ export const useUIStore = create<UIStore>((set, get) => ({
   })),
 
   resetZoom: () => set({ zoom: 1.0 }),
+
+  fitToPage: () => set({ viewMode: 'fit-page' }),
 
   selectPage: (index) => set({ selectedPageIndex: index }),
 

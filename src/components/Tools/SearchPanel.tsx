@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Input, Button, Space, Typography } from 'antd';
+import { Input, Button, Space, Typography, Spin } from 'antd';
 import { SearchOutlined, UpOutlined, DownOutlined } from '@ant-design/icons';
 import { useUIStore, usePDFStore } from '@/stores';
 import { PDFSearchService, SearchResult } from '@/services/pdf/PDFSearchService';
@@ -92,9 +92,9 @@ export const SearchPanel: React.FC = () => {
         <Input
           placeholder="搜索文本..."
           prefix={<SearchOutlined />}
+          suffix={loading && <Spin size="small" />}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          loading={loading}
           allowClear
         />
 

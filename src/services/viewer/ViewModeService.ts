@@ -21,19 +21,23 @@ export class ViewModeService {
         return 1.0;
 
       case 'fit-page':
+        // Fit entire page within container (maintain aspect ratio)
         return Math.min(
           containerWidth / pageWidth,
           containerHeight / pageHeight
         );
 
       case 'fit-width':
+        // Fit page width to container width
         return containerWidth / pageWidth;
 
       case 'two-page':
         // Two-page mode: fit two pages side by side
-        const twoPageWidth = pageWidth * 2 + 20; // 20px gap
+        // Account for gap between pages
+        const availableWidth = containerWidth - 20; // 20px gap
+        const twoPageWidth = pageWidth * 2;
         return Math.min(
-          twoPageWidth / containerWidth,
+          availableWidth / twoPageWidth,
           containerHeight / pageHeight
         );
 

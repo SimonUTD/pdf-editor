@@ -89,7 +89,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   hasUnsavedChanges,
   canSave,
 }) => {
-  const { zoom, zoomIn, zoomOut, resetZoom, toolMode, setToolMode, showToolsPanel, toggleToolsPanel } = useUIStore();
+  const { zoom, zoomIn, zoomOut, fitToPage, toolMode, setToolMode, showToolsPanel, toggleToolsPanel } = useUIStore();
 
   // Keyboard shortcut for search (Ctrl/Cmd + F)
   useEffect(() => {
@@ -302,7 +302,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               {Math.round(zoom * 100)}%
             </Text>
             <Button size="small" icon={<ZoomInOutlined />} onClick={zoomIn} />
-            <Button size="small" icon={<FullscreenOutlined />} onClick={resetZoom}>
+            <Button size="small" icon={<FullscreenOutlined />} onClick={fitToPage}>
               适应
             </Button>
           </Space>
