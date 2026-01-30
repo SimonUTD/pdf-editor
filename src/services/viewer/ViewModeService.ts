@@ -33,13 +33,17 @@ export class ViewModeService {
 
       case 'two-page':
         // Two-page mode: fit two pages side by side
-        // Account for gap between pages
-        const availableWidth = containerWidth - 20; // 20px gap
-        const twoPageWidth = pageWidth * 2;
-        return Math.min(
-          availableWidth / twoPageWidth,
-          containerHeight / pageHeight
-        );
+        // Ensure both pages maintain aspect ratio and equal scale
+        const availableWidth = containerWidth - 20; // 20px gap between pages
+
+        // Calculate zoom to fit two pages horizontally
+        const zoomForWidth = availableWidth / (pageWidth * 2);
+
+        // Calculate zoom to fit one page vertically
+        const zoomForHeight = containerHeight / pageHeight;
+
+        // Use the smaller zoom to ensure both dimensions fit
+        return Math.min(zoomForWidth, zoomForHeight);
 
       default:
         return 1.0;
