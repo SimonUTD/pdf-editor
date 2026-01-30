@@ -37,6 +37,23 @@ A cross-platform desktop PDF editor built with Electron, React, and TypeScript.
 - ✅ Reverse page order
 - ✅ Add highlights to regions with custom colors
 
+### Phase 5: Complete Feature Enhancement 🚧 (In Development)
+- 🚧 View modes (1:1, fit page, fit width, two-page)
+- 🚧 Quick page navigation
+- 🚧 Text search in PDF
+- 🚧 PDF converter (to TXT, Word, Images)
+- 🚧 Images to PDF converter
+- 🚧 Extract images from PDF
+- 🚧 Split PDF
+- 🚧 Extract pages
+- 🚧 Reorder pages
+- 🚧 Add page numbers
+- 🚧 Redact sensitive content
+- 🚧 Compress PDF
+- 🚧 Add signature
+- 🚧 Password protection
+- 🚧 Optimize PDF
+
 ## Tech Stack
 
 - **Electron** - Desktop application framework
@@ -114,6 +131,7 @@ pdf-editor/
 - [x] Phase 2: Basic Editing
 - [x] Phase 3: Advanced Editing
 - [x] Phase 4: Advanced Features
+- [ ] Phase 5: Complete Feature Enhancement (In Development)
 
 ## License
 
