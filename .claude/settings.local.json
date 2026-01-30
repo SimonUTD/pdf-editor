@@ -31,7 +31,10 @@
       "Bash(grep:*)",
       "Bash(npm install:*)",
       "Bash(npm config:*)",
-      "Bash(npx vite build:*)"
+      "Bash(npx vite build:*)",
+      "Bash(npm run compile:*)",
+      "Bash(npm run)",
+      "WebSearch"
     ]
   }
 }

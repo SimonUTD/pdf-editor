@@ -17,6 +17,7 @@ interface PDFCanvasProps {
   onRedactRegion?: (x: number, y: number, width: number, height: number) => Promise<void>;
   onInsertImageAtPosition?: (pageIndex: number, x: number, y: number) => void;
   onInsertTextAtPosition?: (pageIndex: number, x: number, y: number) => void;
+  onInsertSignatureAtPosition?: (pageIndex: number, x: number, y: number) => void;
   onObjectMoveComplete?: (id: string, oldPos: { x: number; y: number }, newPos: { x: number; y: number }) => void;
   onObjectResizeComplete?: (id: string, oldPos: { x: number; y: number }, newPos: { x: number; y: number }, oldSize: { width: number; height: number }, newSize: { width: number; height: number }) => void;
   onObjectRotateComplete?: (id: string, oldRotation: number, newRotation: number) => void;
@@ -31,6 +32,7 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
   onRedactRegion,
   onInsertImageAtPosition,
   onInsertTextAtPosition,
+  onInsertSignatureAtPosition,
   onObjectMoveComplete,
   onObjectResizeComplete,
   onObjectRotateComplete,
@@ -266,6 +268,15 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
       const x = (e.clientX - rect.left) / zoom;
       const y = (e.clientY - rect.top) / zoom;
       onInsertTextAtPosition?.(pageNumber - 1, x, y);
+      e.stopPropagation();
+      return;
+    }
+
+    if (toolMode === 'insert-signature') {
+      const rect = containerRef.current.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / zoom;
+      const y = (e.clientY - rect.top) / zoom;
+      onInsertSignatureAtPosition?.(pageNumber - 1, x, y);
       e.stopPropagation();
       return;
     }

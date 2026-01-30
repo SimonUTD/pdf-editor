@@ -21,4 +21,8 @@ export class RedactCommand {
   async undo(): Promise<void> {
     await this.onUndo(this.originalBytes);
   }
+
+  async redo(): Promise<void> {
+    await this.onExecute(this.marks);
+  }
 }

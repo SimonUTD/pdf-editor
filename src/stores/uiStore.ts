@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { ViewMode } from '../services/viewer/ViewModeService';
 
-type ToolMode = 'view' | 'erase' | 'highlight' | 'insert-image' | 'insert-text' | 'redact';
+type ToolMode = 'view' | 'erase' | 'highlight' | 'insert-image' | 'insert-text' | 'insert-signature' | 'redact';
 
 export interface RedactionMark {
   id: string;
