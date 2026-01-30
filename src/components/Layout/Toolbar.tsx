@@ -16,6 +16,7 @@ import {
   ScissorOutlined,
   SwapOutlined,
   SortAscendingOutlined,
+  VerticalAlignTopOutlined,
   UndoOutlined,
   RedoOutlined,
   RotateLeftOutlined,
@@ -57,6 +58,7 @@ interface ToolbarProps {
   onImagesToPDF: () => void;
   onExtractImages: () => void;
   onSplitPDF: () => void;
+  onExtractPages: () => void;
   onRotatePageLeft?: () => void;
   onRotatePageRight?: () => void;
   onFlipPage?: () => void;
@@ -87,6 +89,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   onImagesToPDF,
   onExtractImages,
   onSplitPDF,
+  onExtractPages,
   onRotatePageLeft,
   onRotatePageRight,
   onFlipPage,
@@ -240,6 +243,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           </Button>
           <Button size="small" icon={<ScissorOutlined />} onClick={onSplitPDF} disabled={!canSave}>
             拆分PDF
+          </Button>
+          <Button size="small" icon={<VerticalAlignTopOutlined />} onClick={onExtractPages} disabled={!canSave}>
+            提取页面
           </Button>
           <Button size="small" icon={<SwapOutlined />} disabled={!canSave} onClick={() => {}}>
             PDF转换
