@@ -120,8 +120,12 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
 
   // Calculate zoom based on view mode
   // 只在viewMode或pageNumber或rotation变化时计算，避免zoom变化导致的循环
+  // 注意：two-page 模式不自动调整 zoom，保持用户当前缩放比例
   useEffect(() => {
     if (!containerRef.current || !pdfDocument) return;
+
+    // two-page 模式不自动调整 zoom
+    if (viewMode === 'two-page') return;
 
     const updateZoomForViewMode = async () => {
       try {
