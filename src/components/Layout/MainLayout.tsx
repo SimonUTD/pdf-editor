@@ -1,6 +1,5 @@
 import React from 'react';
-import { Drawer, Layout } from 'antd';
-import { ToolsPanel } from '@/components/Tools';
+import { Layout } from 'antd';
 import { useUIStore } from '@/stores';
 import { Toolbar } from './Toolbar';
 import { BottomToolbar } from './BottomToolbar';
@@ -64,7 +63,6 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   sidebar,
   content,
 }) => {
-  const { showToolsPanel, toggleToolsPanel } = useUIStore();
   return (
     <Layout style={{ height: '100vh' }}>
       <Toolbar
@@ -112,22 +110,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
             justifyContent: 'center',
             alignItems: 'flex-start',
             padding: 16,
-            paddingBottom: 80, // 为底部toolbar留空间
+            paddingBottom: 60, // 为底部toolbar留空间
           }}
         >
           {content}
         </Content>
       </Layout>
-
-      <Drawer
-        title="工具箱"
-        placement="right"
-        size="large"
-        onClose={toggleToolsPanel}
-        open={showToolsPanel}
-      >
-        <ToolsPanel onToolSelect={() => {}} />
-      </Drawer>
 
       {/* 底部工具栏 */}
       <BottomToolbar />

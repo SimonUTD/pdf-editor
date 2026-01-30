@@ -21,6 +21,16 @@ import {
   RotateRightOutlined,
   SyncOutlined,
   AppstoreOutlined,
+  FileSearchOutlined,
+  CompressOutlined,
+  SafetyOutlined,
+  ToolOutlined,
+  SettingOutlined,
+  DownloadOutlined,
+  EditOutlined,
+  KeyOutlined,
+  SearchOutlined,
+  EyeOutlined,
 } from '@ant-design/icons';
 import { useUIStore } from '@/stores';
 import { PageJumpControl } from './PageJumpControl';
@@ -81,274 +91,180 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   hasUnsavedChanges,
   canSave,
 }) => {
-  const { toolMode, setToolMode, showToolsPanel, toggleToolsPanel } = useUIStore();
+  const { toolMode, setToolMode } = useUIStore();
 
   return (
-    <div
-      style={{
-        backgroundColor: '#fff',
-        borderBottom: '1px solid #f0f0f0',
-      }}
-    >
-      {/* 第一行：文件操作、编辑、插入、工具模式、搜索、页面跳转、工具箱 */}
-      <Row align="middle" style={{ padding: '8px 16px' }}>
-        {/* 文件操作区 */}
-        <Col flex="0 0 auto">
-          <Space size="small">
-            <Button size="small" icon={<FileOutlined />} onClick={onOpenFile}>
-              打开
-            </Button>
-            <Button
-              size="small"
-              icon={<SaveOutlined />}
-              onClick={onSave}
-              disabled={!canSave || !hasUnsavedChanges}
-            >
-              保存
-            </Button>
-            <Button size="small" onClick={onSaveAs} disabled={!canSave}>
-              另存
-            </Button>
-            <Button
-              size="small"
-              icon={<PrinterOutlined />}
-              onClick={onPrint}
-              disabled={!canSave}
-            >
-              打印
-            </Button>
-          </Space>
-        </Col>
+    <div style={{ backgroundColor: '#fff', borderBottom: '1px solid #f0f0f0' }}>
+      {/* 第一行：基本操作 */}
+      <Row align="middle" style={{ padding: '6px 12px', borderBottom: '1px solid #f5f5f5' }}>
+        <Space size="small">
+          <Button size="small" icon={<FileOutlined />} onClick={onOpenFile}>
+            打开
+          </Button>
+          <Button size="small" icon={<SaveOutlined />} onClick={onSave} disabled={!canSave || !hasUnsavedChanges}>
+            保存
+          </Button>
+          <Button size="small" onClick={onSaveAs} disabled={!canSave}>
+            另存
+          </Button>
+          <Button size="small" icon={<PrinterOutlined />} onClick={onPrint} disabled={!canSave}>
+            打印
+          </Button>
+        </Space>
 
-        <Divider orientation="vertical" />
+        <Divider orientation="vertical" style={{ margin: '0 8px' }} />
 
-        {/* 撤销/重做区 */}
-        <Col flex="0 0 auto">
-          <Space size="small">
-            <Button
-              size="small"
-              icon={<UndoOutlined />}
-              onClick={onUndo}
-              disabled={!canUndo}
-              title="撤销 (Ctrl+Z)"
-            >
-              撤销
-            </Button>
-            <Button
-              size="small"
-              icon={<RedoOutlined />}
-              onClick={onRedo}
-              disabled={!canRedo}
-              title="重做 (Ctrl+Y)"
-            >
-              重做
-            </Button>
-          </Space>
-        </Col>
+        <Space size="small">
+          <Button size="small" icon={<UndoOutlined />} onClick={onUndo} disabled={!canUndo} title="撤销 (Ctrl+Z)">
+            撤销
+          </Button>
+          <Button size="small" icon={<RedoOutlined />} onClick={onRedo} disabled={!canRedo} title="重做 (Ctrl+Y)">
+            重做
+          </Button>
+        </Space>
 
-        <Divider orientation="vertical" />
+        <Divider orientation="vertical" style={{ margin: '0 8px' }} />
 
-        {/* 插入操作区 */}
-        <Col flex="0 0 auto">
-          <Space size="small">
-            <Button
-              size="small"
-              icon={<PictureOutlined />}
-              onClick={onInsertImage}
-              disabled={!canSave}
-            >
-              插入图片
-            </Button>
-            <Button
-              size="small"
-              icon={<FontSizeOutlined />}
-              onClick={onInsertText}
-              disabled={!canSave}
-            >
-              插入文本
-            </Button>
-          </Space>
-        </Col>
+        <Space size="small">
+          <Button size="small" icon={<PictureOutlined />} onClick={onInsertImage} disabled={!canSave}>
+            插入图片
+          </Button>
+          <Button size="small" icon={<FontSizeOutlined />} onClick={onInsertText} disabled={!canSave}>
+            插入文本
+          </Button>
+        </Space>
 
-        <Divider orientation="vertical" />
+        <Divider orientation="vertical" style={{ margin: '0 8px' }} />
 
-        {/* 工具模式区 */}
-        <Col flex="0 0 auto">
-          <Space size="small">
-            <Button
-              size="small"
-              type={toolMode === 'erase' ? 'primary' : 'default'}
-              icon={<ScissorOutlined />}
-              onClick={() => setToolMode(toolMode === 'erase' ? 'view' : 'erase')}
-              disabled={!canSave}
-              danger={toolMode === 'erase'}
-            >
-              {toolMode === 'erase' ? '退出擦除' : '擦除'}
-            </Button>
-            <Button
-              size="small"
-              type={toolMode === 'highlight' ? 'primary' : 'default'}
-              icon={<HighlightOutlined />}
-              onClick={() => setToolMode(toolMode === 'highlight' ? 'view' : 'highlight')}
-              disabled={!canSave}
-              style={toolMode === 'highlight' ? { backgroundColor: '#ffec3d', borderColor: '#ffec3d', color: '#000' } : {}}
-            >
-              {toolMode === 'highlight' ? '退出高亮' : '高亮'}
-            </Button>
-          </Space>
-        </Col>
-
-        <Divider orientation="vertical" />
-
-        {/* 页面旋转区 */}
-        <Col flex="0 0 auto">
-          <Space size="small">
-            <Button
-              size="small"
-              icon={<RotateLeftOutlined />}
-              onClick={onRotatePageLeft}
-              disabled={!canSave}
-              title="向左旋转90度"
-            >
-              左转
-            </Button>
-            <Button
-              size="small"
-              icon={<RotateRightOutlined />}
-              onClick={onRotatePageRight}
-              disabled={!canSave}
-              title="向右旋转90度"
-            >
-              右转
-            </Button>
-            <Button
-              size="small"
-              icon={<SyncOutlined />}
-              onClick={onFlipPage}
-              disabled={!canSave}
-              title="翻转180度"
-            >
-              翻转
-            </Button>
-          </Space>
-        </Col>
-
-        <Divider orientation="vertical" />
-
-        {/* 搜索 */}
-        <Col flex="0 0 auto">
-          <SearchToolbar />
-        </Col>
-
-        <Divider orientation="vertical" />
-
-        {/* 页面跳转 */}
-        <Col flex="0 0 auto">
-          <PageJumpControl />
-        </Col>
-
-        <Divider orientation="vertical" />
-
-        {/* 工具箱 */}
-        <Col flex="0 0 auto">
+        <Space size="small">
           <Button
             size="small"
-            type={showToolsPanel ? 'primary' : 'default'}
-            icon={<AppstoreOutlined />}
-            onClick={toggleToolsPanel}
+            type={toolMode === 'erase' ? 'primary' : 'default'}
+            icon={<ScissorOutlined />}
+            onClick={() => setToolMode(toolMode === 'erase' ? 'view' : 'erase')}
             disabled={!canSave}
+            danger={toolMode === 'erase'}
           >
-            工具箱
+            擦除
           </Button>
-        </Col>
+          <Button
+            size="small"
+            type={toolMode === 'highlight' ? 'primary' : 'default'}
+            icon={<HighlightOutlined />}
+            onClick={() => setToolMode(toolMode === 'highlight' ? 'view' : 'highlight')}
+            disabled={!canSave}
+            style={toolMode === 'highlight' ? { backgroundColor: '#ffec3d', borderColor: '#ffec3d', color: '#000' } : {}}
+          >
+            高亮
+          </Button>
+        </Space>
 
-        <Divider orientation="vertical" />
+        <Divider orientation="vertical" style={{ margin: '0 8px' }} />
 
-        {/* 文件名 */}
-        <Col flex="1 1 auto" style={{ overflow: 'hidden', textAlign: 'right' }}>
-          {fileName && (
-            <Text
-              ellipsis
-              style={{ maxWidth: 300, color: hasUnsavedChanges ? '#ff4d4f' : undefined }}
-            >
-              {fileName}
-              {hasUnsavedChanges && ' *'}
-            </Text>
-          )}
-        </Col>
+        <Space size="small">
+          <Button size="small" icon={<RotateLeftOutlined />} onClick={onRotatePageLeft} disabled={!canSave}>
+            左转
+          </Button>
+          <Button size="small" icon={<RotateRightOutlined />} onClick={onRotatePageRight} disabled={!canSave}>
+            右转
+          </Button>
+          <Button size="small" icon={<SyncOutlined />} onClick={onFlipPage} disabled={!canSave}>
+            翻转
+          </Button>
+        </Space>
+
+        <Divider orientation="vertical" style={{ margin: '0 8px' }} />
+
+        <SearchToolbar />
+
+        <Divider orientation="vertical" style={{ margin: '0 8px' }} />
+
+        <PageJumpControl />
+
+        <Divider orientation="vertical" style={{ margin: '0 8px' }} />
+
+        <Text style={{ fontSize: 12, color: hasUnsavedChanges ? '#ff4d4f' : '#666', marginLeft: 8 }}>
+          {fileName || '未打开文件'}
+          {hasUnsavedChanges && ' *'}
+        </Text>
       </Row>
 
-      {/* 第二行：更多工具和导出 */}
-      <Row align="middle" style={{ padding: '4px 16px', borderTop: '1px solid #f0f0f0' }}>
+      {/* 第二行：PDF工具 */}
+      <Row align="middle" style={{ padding: '4px 12px' }}>
         <Space size="small" wrap>
-          {/* PDF工具 */}
-          <Button
-            size="small"
-            icon={<MergeCellsOutlined />}
-            onClick={onMergePDFs}
-            disabled={!canSave}
-          >
+          <Text style={{ fontSize: 12, color: '#999', marginRight: 4 }}>PDF工具:</Text>
+          <Button size="small" icon={<MergeCellsOutlined />} onClick={onMergePDFs} disabled={!canSave}>
             合并PDF
           </Button>
-          <Button
-            size="small"
-            icon={<FontColorsOutlined />}
-            onClick={onAddWatermark}
-            disabled={!canSave}
-          >
+          <Button size="small" icon={<FontColorsOutlined />} onClick={onAddWatermark} disabled={!canSave}>
             水印
           </Button>
-          <Button
-            size="small"
-            icon={<FontSizeOutlined />}
-            onClick={onAddHeaderFooter}
-            disabled={!canSave}
-          >
+          <Button size="small" icon={<FontSizeOutlined />} onClick={onAddHeaderFooter} disabled={!canSave}>
             页眉页脚
           </Button>
-          <Button
-            size="small"
-            icon={<SwapOutlined />}
-            onClick={onReplacePage}
-            disabled={!canSave}
-          >
+          <Button size="small" icon={<SwapOutlined />} onClick={onReplacePage} disabled={!canSave}>
             替换页面
           </Button>
-          <Button
-            size="small"
-            icon={<SortAscendingOutlined />}
-            onClick={onReversePages}
-            disabled={!canSave}
-          >
+          <Button size="small" icon={<SortAscendingOutlined />} onClick={onReversePages} disabled={!canSave}>
             倒序页面
           </Button>
 
-          <Divider orientation="vertical" />
+          <Divider orientation="vertical" style={{ margin: '0 8px' }} />
 
-          {/* 导出 */}
-          <Button
-            size="small"
-            icon={<FileImageOutlined />}
-            onClick={onExportAsImages}
-            disabled={!canSave}
-          >
+          <Text style={{ fontSize: 12, color: '#999', marginRight: 4 }}>导出:</Text>
+          <Button size="small" icon={<FileImageOutlined />} onClick={onExportAsImages} disabled={!canSave}>
             导出图片
           </Button>
-          <Button
-            size="small"
-            icon={<FileTextOutlined />}
-            onClick={onExportAsText}
-            disabled={!canSave}
-          >
+          <Button size="small" icon={<FileTextOutlined />} onClick={onExportAsText} disabled={!canSave}>
             导出文本
           </Button>
-          <Button
-            size="small"
-            icon={<FileWordOutlined />}
-            onClick={onExportAsWord}
-            disabled={!canSave}
-          >
+          <Button size="small" icon={<FileWordOutlined />} onClick={onExportAsWord} disabled={!canSave}>
             导出Word
+          </Button>
+
+          <Divider orientation="vertical" style={{ margin: '0 8px' }} />
+
+          <Text style={{ fontSize: 12, color: '#999', marginRight: 4 }}>转换工具:</Text>
+          <Button size="small" icon={<SwapOutlined />} disabled={!canSave} onClick={() => {}}>
+            PDF转换
+          </Button>
+          <Button size="small" icon={<FileImageOutlined />} disabled={!canSave} onClick={() => {}}>
+            图片转PDF
+          </Button>
+          <Button size="small" icon={<DownloadOutlined />} disabled={!canSave} onClick={() => {}}>
+            提取图像
+          </Button>
+
+          <Divider orientation="vertical" style={{ margin: '0 8px' }} />
+
+          <Text style={{ fontSize: 12, color: '#999', marginRight: 4 }}>编辑:</Text>
+          <Button size="small" icon={<ScissorOutlined />} disabled={!canSave} onClick={() => {}}>
+            PDF拆分
+          </Button>
+          <Button size="small" icon={<DownloadOutlined />} disabled={!canSave} onClick={() => {}}>
+            页面提取
+          </Button>
+          <Button size="small" icon={<SwapOutlined />} disabled={!canSave} onClick={() => {}}>
+            页面重排
+          </Button>
+          <Button size="small" icon={<ToolOutlined />} disabled={!canSave} onClick={() => {}}>
+            添加页码
+          </Button>
+
+          <Divider orientation="vertical" style={{ margin: '0 8px' }} />
+
+          <Text style={{ fontSize: 12, color: '#999', marginRight: 4 }}>高级:</Text>
+          <Button size="small" icon={<CompressOutlined />} disabled={!canSave} onClick={() => {}}>
+            PDF压缩
+          </Button>
+          <Button size="small" icon={<SafetyOutlined />} disabled={!canSave} onClick={() => {}}>
+            标记密文
+          </Button>
+          <Button size="small" icon={<KeyOutlined />} disabled={!canSave} onClick={() => {}}>
+            密码保护
+          </Button>
+          <Button size="small" icon={<SettingOutlined />} disabled={!canSave} onClick={() => {}}>
+            PDF优化
           </Button>
         </Space>
       </Row>

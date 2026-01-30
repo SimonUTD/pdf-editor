@@ -38,22 +38,22 @@ export const BottomToolbar: React.FC = () => {
         boxShadow: '0 -2px 8px rgba(0,0,0,0.05)',
       }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', maxWidth: 1400, margin: '0 auto' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 24, flexWrap: 'nowrap' }}>
         {/* 左侧：缩放控制 */}
-        <Space size="middle" style={{ flex: 1 }}>
+        <Space size="small" style={{ flex: '0 0 auto' }}>
           <Button
             size="small"
             icon={<ZoomOutOutlined />}
             onClick={zoomOut}
             disabled={zoom <= 0.5}
-            title="缩小 (Ctrl+-)"
+            title="缩小"
           />
           <Slider
             min={50}
             max={300}
             value={Math.round(zoom * 100)}
             onChange={handleSliderChange}
-            style={{ width: 200 }}
+            style={{ width: 150 }}
             tooltip={{ formatter: (value) => `${value}%` }}
           />
           <Button
@@ -61,9 +61,9 @@ export const BottomToolbar: React.FC = () => {
             icon={<ZoomInOutlined />}
             onClick={zoomIn}
             disabled={zoom >= 3.0}
-            title="放大 (Ctrl++)"
+            title="放大"
           />
-          <Text style={{ minWidth: 50, textAlign: 'center', fontSize: 13 }}>
+          <Text style={{ minWidth: 45, textAlign: 'center', fontSize: 12 }}>
             {Math.round(zoom * 100)}%
           </Text>
           <Button
@@ -76,31 +76,20 @@ export const BottomToolbar: React.FC = () => {
           </Button>
         </Space>
 
-        <Divider orientation="vertical" style={{ height: 30 }} />
+        <Divider orientation="vertical" style={{ height: 24 }} />
 
-        {/* 中间：查看模式 - 直接显示为按钮 */}
-        <Space size="small" style={{ flex: 2, justifyContent: 'center' }}>
-          <Text style={{ fontSize: 12, color: '#666' }}>显示模式：</Text>
+        {/* 右侧：查看模式 - 直接显示为按钮 */}
+        <Space size="small" style={{ flex: '0 0 auto' }}>
           {viewModes.map((mode) => (
             <Button
               key={mode.key}
               size="small"
               type={viewMode === mode.key ? 'primary' : 'default'}
               onClick={() => setViewMode(mode.key)}
-              title={mode.label}
             >
               {mode.icon} {mode.label}
             </Button>
           ))}
-        </Space>
-
-        <Divider orientation="vertical" style={{ height: 30 }} />
-
-        {/* 右侧：留空用于扩展 */}
-        <Space size="middle" style={{ flex: 1, justifyContent: 'flex-end' }}>
-          <Text style={{ fontSize: 12, color: '#999' }}>
-            滚轮翻页 | Ctrl+滚轮缩放
-          </Text>
         </Space>
       </div>
     </div>
