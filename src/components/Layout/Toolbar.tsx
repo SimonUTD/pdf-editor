@@ -1,13 +1,9 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Button, Space, Typography, Divider, Row, Col } from 'antd';
 import {
   FileOutlined,
   SaveOutlined,
   PrinterOutlined,
-  ZoomInOutlined,
-  ZoomOutOutlined,
-  FullscreenOutlined,
-  ExportOutlined,
   PictureOutlined,
   FontSizeOutlined,
   FileImageOutlined,
@@ -25,12 +21,10 @@ import {
   RotateRightOutlined,
   SyncOutlined,
   AppstoreOutlined,
-  SearchOutlined,
 } from '@ant-design/icons';
 import { useUIStore } from '@/stores';
-import { translate } from '@/constants/translations';
-import { ViewModeSelector } from './ViewModeSelector';
 import { PageJumpControl } from './PageJumpControl';
+import { SearchToolbar } from './SearchToolbar';
 
 const { Text } = Typography;
 
@@ -54,7 +48,6 @@ interface ToolbarProps {
   onFlipPage?: () => void;
   onUndo?: () => void;
   onRedo?: () => void;
-  onShowSearch?: () => void;
   canUndo?: boolean;
   canRedo?: boolean;
   fileName: string | null;
@@ -82,27 +75,13 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   onFlipPage,
   onUndo,
   onRedo,
-  onShowSearch,
   canUndo = false,
   canRedo = false,
   fileName,
   hasUnsavedChanges,
   canSave,
 }) => {
-  const { zoom, zoomIn, zoomOut, fitToPage, toolMode, setToolMode, showToolsPanel, toggleToolsPanel } = useUIStore();
-
-  // Keyboard shortcut for search (Ctrl/Cmd + F)
-  useEffect(() => {
-    const handleKeyPress = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
-        e.preventDefault();
-        onShowSearch?.();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [onShowSearch]);
+  const { toolMode, setToolMode, showToolsPanel, toggleToolsPanel } = useUIStore();
 
   return (
     <div
@@ -111,7 +90,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         borderBottom: '1px solid #f0f0f0',
       }}
     >
-      {/* 第一行：文件操作、编辑、查看 */}
+      {/* 第一行：文件操作、编辑、插入、工具模式、搜索、页面跳转、工具箱 */}
       <Row align="middle" style={{ padding: '8px 16px' }}>
         {/* 文件操作区 */}
         <Col flex="0 0 auto">
@@ -256,9 +235,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
         <Divider orientation="vertical" />
 
-        {/* 查看模式 */}
+        {/* 搜索 */}
         <Col flex="0 0 auto">
-          <ViewModeSelector />
+          <SearchToolbar />
         </Col>
 
         <Divider orientation="vertical" />
@@ -270,42 +249,32 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
         <Divider orientation="vertical" />
 
-        {/* 搜索 */}
+        {/* 工具箱 */}
         <Col flex="0 0 auto">
           <Button
             size="small"
-            icon={<SearchOutlined />}
-            onClick={onShowSearch}
+            type={showToolsPanel ? 'primary' : 'default'}
+            icon={<AppstoreOutlined />}
+            onClick={toggleToolsPanel}
             disabled={!canSave}
-            title="搜索 (Ctrl+F)"
           >
-            搜索
+            工具箱
           </Button>
         </Col>
 
         <Divider orientation="vertical" />
 
-        {/* 文件名和缩放 */}
+        {/* 文件名 */}
         <Col flex="1 1 auto" style={{ overflow: 'hidden', textAlign: 'right' }}>
-          <Space size="small">
-            {fileName && (
-              <Text
-                ellipsis
-                style={{ maxWidth: 300, color: hasUnsavedChanges ? '#ff4d4f' : undefined }}
-              >
-                {fileName}
-                {hasUnsavedChanges && ' *'}
-              </Text>
-            )}
-            <Button size="small" icon={<ZoomOutOutlined />} onClick={zoomOut} />
-            <Text style={{ minWidth: 45, textAlign: 'center', fontSize: 12 }}>
-              {Math.round(zoom * 100)}%
+          {fileName && (
+            <Text
+              ellipsis
+              style={{ maxWidth: 300, color: hasUnsavedChanges ? '#ff4d4f' : undefined }}
+            >
+              {fileName}
+              {hasUnsavedChanges && ' *'}
             </Text>
-            <Button size="small" icon={<ZoomInOutlined />} onClick={zoomIn} />
-            <Button size="small" icon={<FullscreenOutlined />} onClick={fitToPage}>
-              适应
-            </Button>
-          </Space>
+          )}
         </Col>
       </Row>
 
@@ -380,19 +349,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             disabled={!canSave}
           >
             导出Word
-          </Button>
-
-          <Divider orientation="vertical" />
-
-          {/* 工具箱 */}
-          <Button
-            size="small"
-            type={showToolsPanel ? 'primary' : 'default'}
-            icon={<AppstoreOutlined />}
-            onClick={toggleToolsPanel}
-            disabled={!canSave}
-          >
-            工具箱
           </Button>
         </Space>
       </Row>

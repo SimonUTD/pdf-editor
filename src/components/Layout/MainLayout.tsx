@@ -1,30 +1,11 @@
-import React, { useCallback, useState } from 'react';
-import { Drawer, Layout, message, Modal } from 'antd';
+import React from 'react';
+import { Drawer, Layout } from 'antd';
 import { ToolsPanel } from '@/components/Tools';
-import { SearchPanel } from '@/components/Tools/SearchPanel';
 import { useUIStore } from '@/stores';
 import { Toolbar } from './Toolbar';
+import { BottomToolbar } from './BottomToolbar';
 
 const { Sider, Content } = Layout;
-
-// Tool label mapping for display feedback
-const TOOL_LABELS: Record<string, string> = {
-  'view-modes': '查看模式',
-  'quick-jump': '快捷跳转',
-  'text-search': '文本搜索',
-  'pdf-convert': 'PDF转换器',
-  'image-to-pdf': '图片转PDF',
-  'extract-images': '提取图像',
-  'pdf-split': 'PDF拆分',
-  'extract-pages': '页面提取',
-  'reorder-pages': '页面重排',
-  'page-numbers': '添加页码',
-  redact: '标记密文',
-  compress: 'PDF压缩',
-  signature: 'PDF签署',
-  security: '密码保护',
-  optimize: 'PDF优化',
-};
 
 interface MainLayoutProps {
   fileName: string | null;
@@ -49,7 +30,6 @@ interface MainLayoutProps {
   onFlipPage?: () => void;
   onUndo?: () => void;
   onRedo?: () => void;
-  onShowSearch?: () => void;
   canUndo?: boolean;
   canRedo?: boolean;
   sidebar: React.ReactNode;
@@ -79,27 +59,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   onFlipPage,
   onUndo,
   onRedo,
-  onShowSearch,
   canUndo = false,
   canRedo = false,
   sidebar,
   content,
 }) => {
   const { showToolsPanel, toggleToolsPanel } = useUIStore();
-  const [showSearchModal, setShowSearchModal] = useState(false);
-
-  const handleToolSelect = useCallback((toolKey: string) => {
-    if (toolKey === 'text-search') {
-      setShowSearchModal(true);
-    } else {
-      const toolLabel = TOOL_LABELS[toolKey] || toolKey;
-      message.info(toolLabel);
-    }
-  }, []);
-
-  const handleShowSearch = useCallback(() => {
-    setShowSearchModal(true);
-  }, []);
   return (
     <Layout style={{ height: '100vh' }}>
       <Toolbar
@@ -122,7 +87,6 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         onFlipPage={onFlipPage}
         onUndo={onUndo}
         onRedo={onRedo}
-        onShowSearch={handleShowSearch}
         canUndo={canUndo}
         canRedo={canRedo}
         fileName={fileName}
@@ -148,6 +112,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
             justifyContent: 'center',
             alignItems: 'flex-start',
             padding: 16,
+            paddingBottom: 80, // 为底部toolbar留空间
           }}
         >
           {content}
@@ -161,19 +126,11 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         onClose={toggleToolsPanel}
         open={showToolsPanel}
       >
-        <ToolsPanel onToolSelect={handleToolSelect} />
+        <ToolsPanel onToolSelect={() => {}} />
       </Drawer>
 
-      {/* Search Modal */}
-      <Modal
-        title="文本搜索"
-        open={showSearchModal}
-        onCancel={() => setShowSearchModal(false)}
-        footer={null}
-        width={400}
-      >
-        <SearchPanel />
-      </Modal>
+      {/* 底部工具栏 */}
+      <BottomToolbar />
     </Layout>
   );
 };
