@@ -15,16 +15,17 @@ export class NavigationService {
    * Also handles edge cases like invalid totalPages, NaN, and non-integer values.
    *
    * @param page - The requested page number (1-based, will be truncated to integer)
-   * @param totalPages - Total number of pages in the document (must be >= 1)
-   * @returns Validated page number, or 1 if totalPages is invalid
+   * @param totalPages - Total number of pages in the document (must be >= 1, will be truncated to integer)
+   * @returns Validated page number (always an integer), or 1 if totalPages is invalid
    *
    * @example
    * ```ts
-   * NavigationService.validatePageNumber(0, 10);    // returns 1
-   * NavigationService.validatePageNumber(5, 10);    // returns 5
-   * NavigationService.validatePageNumber(15, 10);   // returns 10
-   * NavigationService.validatePageNumber(5.7, 10);  // returns 5 (truncated)
-   * NavigationService.validatePageNumber(5, 0);     // returns 1 (invalid totalPages)
+   * NavigationService.validatePageNumber(0, 10);     // returns 1
+   * NavigationService.validatePageNumber(5, 10);     // returns 5
+   * NavigationService.validatePageNumber(15, 10);    // returns 10
+   * NavigationService.validatePageNumber(5.7, 10);   // returns 5 (truncated)
+   * NavigationService.validatePageNumber(5, 0);      // returns 1 (invalid totalPages)
+   * NavigationService.validatePageNumber(5, 10.8);   // returns 5 (totalPages truncated)
    * ```
    */
   static validatePageNumber(page: number, totalPages: number): number {
@@ -33,11 +34,12 @@ export class NavigationService {
       return 1;
     }
 
-    // Truncate to integer and ensure finite
+    // Truncate both values to integers to ensure consistent behavior
+    const truncatedTotalPages = Math.trunc(totalPages);
     const truncatedPage = Number.isFinite(page) ? Math.trunc(page) : 1;
 
     // Clamp to valid range [1, totalPages]
-    const validated = Math.max(1, Math.min(truncatedPage, totalPages));
+    const validated = Math.max(1, Math.min(truncatedPage, truncatedTotalPages));
     return validated;
   }
 
@@ -68,29 +70,31 @@ export class NavigationService {
    * Format page display text for UI
    *
    * Creates a human-readable string showing current page and total pages
-   * in the format "currentPage / totalPages". Handles edge cases gracefully.
+   * in the format "currentPage / totalPages". Values will be clamped to
+   * valid range before display to ensure consistency.
    *
-   * @param currentPage - Current page number (1-based)
-   * @param totalPages - Total number of pages in the document
-   * @returns Formatted display string, or "-" if values are invalid
+   * @param currentPage - Current page number (1-based, will be validated and clamped)
+   * @param totalPages - Total number of pages in the document (must be >= 1)
+   * @returns Formatted display string, or "-" if totalPages is invalid
    *
    * @example
    * ```ts
-   * NavigationService.getPageDisplayText(5, 20);   // returns "5 / 20"
-   * NavigationService.getPageDisplayText(1, 1);    // returns "1 / 1"
-   * NavigationService.getPageDisplayText(5, 0);    // returns "-" (invalid totalPages)
-   * NavigationService.getPageDisplayText(NaN, 10); // returns "-" (invalid currentPage)
+   * NavigationService.getPageDisplayText(5, 20);    // returns "5 / 20"
+   * NavigationService.getPageDisplayText(1, 1);     // returns "1 / 1"
+   * NavigationService.getPageDisplayText(5, 0);     // returns "-" (invalid totalPages)
+   * NavigationService.getPageDisplayText(100, 20);  // returns "20 / 20" (clamped)
+   * NavigationService.getPageDisplayText(NaN, 10);  // returns "1 / 10" (invalid page clamped)
    * ```
    */
   static getPageDisplayText(currentPage: number, totalPages: number): string {
-    // Validate inputs before formatting
-    const isValidPage = Number.isFinite(currentPage) && currentPage >= 1;
-    const isValidTotal = Number.isFinite(totalPages) && totalPages >= 1;
-
-    if (!isValidPage || !isValidTotal) {
+    // Validate totalPages first
+    if (!Number.isFinite(totalPages) || totalPages < 1) {
       return '-';
     }
 
-    return `${Math.trunc(currentPage)} / ${Math.trunc(totalPages)}`;
+    // Clamp currentPage to valid range [1, totalPages] to ensure display consistency
+    const validPage = NavigationService.validatePageNumber(currentPage, totalPages);
+
+    return `${validPage} / ${Math.trunc(totalPages)}`;
   }
 }
