@@ -1,6 +1,7 @@
-import React, { useCallback } from 'react';
-import { Drawer, Layout, message } from 'antd';
+import React, { useCallback, useState } from 'react';
+import { Drawer, Layout, message, Modal } from 'antd';
 import { ToolsPanel } from '@/components/Tools';
+import { SearchPanel } from '@/components/Tools/SearchPanel';
 import { useUIStore } from '@/stores';
 import { Toolbar } from './Toolbar';
 
@@ -83,10 +84,15 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   content,
 }) => {
   const { showToolsPanel, toggleToolsPanel } = useUIStore();
+  const [showSearchModal, setShowSearchModal] = useState(false);
 
   const handleToolSelect = useCallback((toolKey: string) => {
-    const toolLabel = TOOL_LABELS[toolKey] || toolKey;
-    message.info(toolLabel);
+    if (toolKey === 'text-search') {
+      setShowSearchModal(true);
+    } else {
+      const toolLabel = TOOL_LABELS[toolKey] || toolKey;
+      message.info(toolLabel);
+    }
   }, []);
   return (
     <Layout style={{ height: '100vh' }}>
@@ -150,6 +156,17 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
       >
         <ToolsPanel onToolSelect={handleToolSelect} />
       </Drawer>
+
+      {/* Search Modal */}
+      <Modal
+        title="文本搜索"
+        open={showSearchModal}
+        onCancel={() => setShowSearchModal(false)}
+        footer={null}
+        width={400}
+      >
+        <SearchPanel />
+      </Modal>
     </Layout>
   );
 };

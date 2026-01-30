@@ -12,6 +12,9 @@ interface UIStore {
   pageRotations: number[]; // 存储每页的旋转角度 (0, 90, 180, 270)
   viewMode: ViewMode;
   showToolsPanel: boolean;
+  searchQuery: string;
+  searchResults: any[];
+  currentMatchIndex: number;
 
   // Actions
   setZoom: (zoom: number) => void;
@@ -28,6 +31,9 @@ interface UIStore {
   getPageRotation: (pageIndex: number) => number;
   setViewMode: (mode: ViewMode) => void;
   toggleToolsPanel: () => void;
+  setSearchQuery: (query: string) => void;
+  setSearchResults: (results: any[]) => void;
+  setCurrentMatchIndex: (index: number) => void;
 }
 
 export const useUIStore = create<UIStore>((set, get) => ({
@@ -38,6 +44,9 @@ export const useUIStore = create<UIStore>((set, get) => ({
   pageRotations: [], // 初始化为空数组，加载PDF时填充
   viewMode: 'fit-page',
   showToolsPanel: false,
+  searchQuery: '',
+  searchResults: [],
+  currentMatchIndex: 0,
 
   setZoom: (zoom) => set({ zoom: Math.max(0.5, Math.min(3.0, zoom)) }),
 
@@ -99,6 +108,10 @@ export const useUIStore = create<UIStore>((set, get) => ({
 
   toggleToolsPanel: () =>
     set((state) => ({ showToolsPanel: !state.showToolsPanel })),
+
+  setSearchQuery: (query) => set({ searchQuery: query }),
+  setSearchResults: (results) => set({ searchResults: results }),
+  setCurrentMatchIndex: (index) => set({ currentMatchIndex: index }),
 }));
 
 export type { ViewMode };
