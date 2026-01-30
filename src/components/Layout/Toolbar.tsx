@@ -9,6 +9,7 @@ import {
   FileImageOutlined,
   FileTextOutlined,
   FileWordOutlined,
+  FilePdfOutlined,
   MergeCellsOutlined,
   FontColorsOutlined,
   HighlightOutlined,
@@ -53,6 +54,7 @@ interface ToolbarProps {
   onAddHeaderFooter: () => void;
   onReversePages: () => void;
   onReplacePage: () => void;
+  onImagesToPDF: () => void;
   onRotatePageLeft?: () => void;
   onRotatePageRight?: () => void;
   onFlipPage?: () => void;
@@ -80,6 +82,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   onAddHeaderFooter,
   onReplacePage,
   onReversePages,
+  onImagesToPDF,
   onRotatePageLeft,
   onRotatePageRight,
   onFlipPage,
@@ -225,6 +228,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           <Divider orientation="vertical" style={{ margin: '0 8px' }} />
 
           <Text style={{ fontSize: 12, color: '#999', marginRight: 4 }}>转换工具:</Text>
+          <Button size="small" icon={<FilePdfOutlined />} onClick={onImagesToPDF}>
+            图片转PDF
+          </Button>
           <Button size="small" icon={<SwapOutlined />} disabled={!canSave} onClick={() => {}}>
             PDF转换
           </Button>

@@ -24,6 +24,7 @@ interface MainLayoutProps {
   onAddHeaderFooter: () => void;
   onReplacePage: () => void;
   onReversePages: () => void;
+  onImagesToPDF: () => void;
   onRotatePageLeft?: () => void;
   onRotatePageRight?: () => void;
   onFlipPage?: () => void;
@@ -53,6 +54,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   onAddHeaderFooter,
   onReplacePage,
   onReversePages,
+  onImagesToPDF,
   onRotatePageLeft,
   onRotatePageRight,
   onFlipPage,
@@ -80,6 +82,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         onAddHeaderFooter={onAddHeaderFooter}
         onReplacePage={onReplacePage}
         onReversePages={onReversePages}
+        onImagesToPDF={onImagesToPDF}
         onRotatePageLeft={onRotatePageLeft}
         onRotatePageRight={onRotatePageRight}
         onFlipPage={onFlipPage}
