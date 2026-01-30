@@ -93,7 +93,7 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
       const page = await pdfDocument.getPage(pageNumber);
       const viewport = page.getViewport({ scale: 1.0, rotation });
 
-      const container = containerRef.current;
+      const container = containerRef.current!;
       const containerWidth = container.clientWidth;
       const containerHeight = container.clientHeight;
 
