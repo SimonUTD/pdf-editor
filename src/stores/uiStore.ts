@@ -1,7 +1,17 @@
 import { create } from 'zustand';
 import type { ViewMode } from '../services/viewer/ViewModeService';
 
-type ToolMode = 'view' | 'erase' | 'highlight' | 'insert-image' | 'insert-text';
+type ToolMode = 'view' | 'erase' | 'highlight' | 'insert-image' | 'insert-text' | 'redact';
+
+export interface RedactionMark {
+  id: string;
+  pageIndex: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  createdAt: number;
+}
 
 interface UIStore {
   // State
@@ -15,6 +25,7 @@ interface UIStore {
   searchQuery: string;
   searchResults: any[];
   currentMatchIndex: number;
+  redactionMarks: RedactionMark[]; // 密文标记列表
 
   // Actions
   setZoom: (zoom: number) => void;
@@ -35,6 +46,9 @@ interface UIStore {
   setSearchQuery: (query: string) => void;
   setSearchResults: (results: any[]) => void;
   setCurrentMatchIndex: (index: number) => void;
+  addRedactionMark: (mark: Omit<RedactionMark, 'id' | 'createdAt'>) => void;
+  removeRedactionMark: (id: string) => void;
+  clearRedactionMarks: (pageIndex?: number) => void;
 }
 
 export const useUIStore = create<UIStore>((set, get) => ({
@@ -48,6 +62,7 @@ export const useUIStore = create<UIStore>((set, get) => ({
   searchQuery: '',
   searchResults: [],
   currentMatchIndex: 0,
+  redactionMarks: [],
 
   setZoom: (zoom) => set({ zoom: Math.max(0.5, Math.min(3.0, zoom)) }),
 
@@ -115,6 +130,28 @@ export const useUIStore = create<UIStore>((set, get) => ({
   setSearchQuery: (query) => set({ searchQuery: query }),
   setSearchResults: (results) => set({ searchResults: results }),
   setCurrentMatchIndex: (index) => set({ currentMatchIndex: index }),
+
+  addRedactionMark: (mark) => set((state) => ({
+    redactionMarks: [
+      ...state.redactionMarks,
+      {
+        ...mark,
+        id: `redact-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        createdAt: Date.now(),
+      }
+    ]
+  })),
+
+  removeRedactionMark: (id) => set((state) => ({
+    redactionMarks: state.redactionMarks.filter(m => m.id !== id)
+  })),
+
+  clearRedactionMarks: (pageIndex) => set((state) => ({
+    redactionMarks: pageIndex === undefined
+      ? []
+      : state.redactionMarks.filter(m => m.pageIndex !== pageIndex)
+  })),
 }));
 
 export type { ViewMode };
+export type { RedactionMark as UIStoreRedactionMark };

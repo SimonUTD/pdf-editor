@@ -92,6 +92,20 @@ type EditAction =
       };
     }
   | {
+      type: 'page-numbers-add';
+      timestamp: number;
+      data: {
+        options: any;
+      };
+    }
+  | {
+      type: 'redaction-apply';
+      timestamp: number;
+      data: {
+        count: number;
+      };
+    }
+  | {
       type: 'content-erase';
       timestamp: number;
       data: {
@@ -114,9 +128,28 @@ type EditAction =
       };
     }
   | {
+      type: 'redaction-apply';
+      timestamp: number;
+      data: {
+        count: number;
+      };
+    }
+  | {
       type: 'pages-reverse';
       timestamp: number;
       data: Record<string, never>;
+    }
+  | {
+      type: 'page-numbers-add';
+      timestamp: number;
+      data: {
+        options: {
+          position: string;
+          format: string;
+          startNumber: number;
+          fontSize: number;
+        };
+      };
     }
   | {
       type: 'object-move';

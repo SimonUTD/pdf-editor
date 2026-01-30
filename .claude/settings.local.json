@@ -28,7 +28,10 @@
       "Bash(npx codex-cli ask-codex:*)",
       "Bash(npx tsc:*)",
       "Bash(./node_modules/.bin/tsc:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(npm install:*)",
+      "Bash(npm config:*)",
+      "Bash(npx vite build:*)"
     ]
   }
 }

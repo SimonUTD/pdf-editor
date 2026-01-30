@@ -12,3 +12,5 @@ export { EraseCommand } from './EraseCommand';
 export type { ErasePath } from './EraseCommand';
 export { HighlightCommand } from './HighlightCommand';
 export type { HighlightRect } from './HighlightCommand';
+export { RedactCommand } from './RedactCommand';
+export type { RedactionMark } from './RedactCommand';

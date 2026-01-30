@@ -33,6 +33,7 @@ import {
   KeyOutlined,
   SearchOutlined,
   EyeOutlined,
+  StopOutlined,
 } from '@ant-design/icons';
 import { useUIStore } from '@/stores';
 import { PageJumpControl } from './PageJumpControl';
@@ -59,9 +60,12 @@ interface ToolbarProps {
   onExtractImages: () => void;
   onSplitPDF: () => void;
   onExtractPages: () => void;
+  onAddPageNumbers: () => void;
+  onReorderPages?: () => void;
   onRotatePageLeft?: () => void;
   onRotatePageRight?: () => void;
   onFlipPage?: () => void;
+  onRedact?: () => void;
   onUndo?: () => void;
   onRedo?: () => void;
   canUndo?: boolean;
@@ -90,9 +94,12 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   onExtractImages,
   onSplitPDF,
   onExtractPages,
+  onAddPageNumbers,
+  onReorderPages,
   onRotatePageLeft,
   onRotatePageRight,
   onFlipPage,
+  onRedact,
   onUndo,
   onRedo,
   canUndo = false,
@@ -166,6 +173,16 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             style={toolMode === 'highlight' ? { backgroundColor: '#ffec3d', borderColor: '#ffec3d', color: '#000' } : {}}
           >
             高亮
+          </Button>
+          <Button
+            size="small"
+            type={toolMode === 'redact' ? 'primary' : 'default'}
+            icon={<StopOutlined />}
+            onClick={onRedact}
+            disabled={!canSave}
+            danger={toolMode === 'redact'}
+          >
+            密文
           </Button>
         </Space>
 
@@ -260,16 +277,16 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           <Divider orientation="vertical" style={{ margin: '0 8px' }} />
 
           <Text style={{ fontSize: 12, color: '#999', marginRight: 4 }}>编辑:</Text>
-          <Button size="small" icon={<ScissorOutlined />} disabled={!canSave} onClick={() => {}}>
+          <Button size="small" icon={<ScissorOutlined />} disabled={!canSave} onClick={onSplitPDF}>
             PDF拆分
           </Button>
-          <Button size="small" icon={<DownloadOutlined />} disabled={!canSave} onClick={() => {}}>
+          <Button size="small" icon={<VerticalAlignTopOutlined />} disabled={!canSave} onClick={onExtractPages}>
             页面提取
           </Button>
-          <Button size="small" icon={<SwapOutlined />} disabled={!canSave} onClick={() => {}}>
-            页面重排
+          <Button size="small" icon={<SwapOutlined />} disabled={!canSave} onClick={onReorderPages}>
+            页面排序
           </Button>
-          <Button size="small" icon={<ToolOutlined />} disabled={!canSave} onClick={() => {}}>
+          <Button size="small" icon={<ToolOutlined />} disabled={!canSave} onClick={onAddPageNumbers}>
             添加页码
           </Button>
 

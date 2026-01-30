@@ -14,6 +14,9 @@ import { ImagesToPDF } from './components/Editors/ImagesToPDF';
 import { ImageExtractor } from './components/Editors/ImageExtractor';
 import { PDFSplitter } from './components/Editors/PDFSplitter';
 import { PageExtractor } from './components/Editors/PageExtractor';
+import { PageNumberAdder } from './components/Editors/PageNumberAdder';
+import { PageReorder } from './components/Editors/PageReorder';
+import { RedactTool } from './components/Editors/RedactTool';
 import { PDFRenderer } from './services/pdfRenderer';
 import { PDFEditor } from './services/pdfEditor';
 import { ExportService } from './services/exportService';
@@ -35,6 +38,7 @@ import {
   PageRotateCommand,
   EraseCommand,
   HighlightCommand,
+  RedactCommand,
   type Command,
 } from './commands';
 
@@ -51,6 +55,8 @@ const App: React.FC = () => {
     rotatePageLeft,
     rotatePageRight,
     flipPage,
+    addRedactionMark,
+    clearRedactionMarks,
   } = useUIStore();
   const { hasUnsavedChanges, markAsSaved, markAsUnsaved, addToHistory } = useEditStore();
   const { objects, addObject } = useObjectStore();
@@ -66,6 +72,9 @@ const App: React.FC = () => {
   const [imageExtractorVisible, setImageExtractorVisible] = useState(false);
   const [pdfSplitterVisible, setPdfSplitterVisible] = useState(false);
   const [pageExtractorVisible, setPageExtractorVisible] = useState(false);
+  const [redactToolVisible, setRedactToolVisible] = useState(false);
+  const [pageNumberAdderVisible, setPageNumberAdderVisible] = useState(false);
+  const [pageReorderVisible, setPageReorderVisible] = useState(false);
 
 
   // Command history for undo/redo
@@ -735,6 +744,35 @@ const App: React.FC = () => {
     }
   }, [pdfBytes, filePath, loadPDF, addToHistory, markAsUnsaved]);
 
+  const handleAddPageNumbers = useCallback(async (options: {
+    position: 'top' | 'bottom' | 'left' | 'right';
+    format: 'arabic' | 'roman';
+    startNumber: number;
+    fontSize: number;
+    color: { r: number; g: number; b: number };
+    rangeMode: 'all' | 'range';
+    pageRange?: string;
+  }) => {
+    if (!pdfBytes) return;
+    try {
+      const pdfDoc = await PDFEditor.createFromBytes(pdfBytes);
+      await PDFEditor.addPageNumbers(pdfDoc, options);
+      const newBytes = await PDFEditor.saveToBytes(pdfDoc);
+      setPdfBytes(newBytes);
+      const document = await PDFRenderer.loadDocument(getArrayBuffer(newBytes));
+      loadPDF(filePath || '', document, document.numPages);
+      addToHistory({
+        type: 'page-numbers-add',
+        timestamp: Date.now(),
+        data: { options },
+      });
+      markAsUnsaved();
+    } catch (error) {
+      console.error('Error adding page numbers:', error);
+      throw error;
+    }
+  }, [pdfBytes, filePath, loadPDF, addToHistory, markAsUnsaved]);
+
   const handleExportAsImages = useCallback(async () => {
     if (!pdfDocument) {
       message.error(getMessage('No PDF loaded'));
@@ -967,6 +1005,87 @@ const App: React.FC = () => {
     }
   }, [pdfBytes, selectedPageIndex, filePath, loadPDF, addToHistory, markAsUnsaved]);
 
+  // Add redaction mark (only add to store, don't apply to PDF yet)
+  const handleAddRedactionMark = useCallback(async (x: number, y: number, width: number, height: number) => {
+    addRedactionMark({
+      pageIndex: selectedPageIndex,
+      x,
+      y,
+      width,
+      height,
+    });
+  }, [selectedPageIndex, addRedactionMark]);
+
+  // Apply all redaction marks to PDF
+  const handleApplyRedactions = useCallback(async () => {
+    if (!pdfBytes) {
+      message.error('没有加载PDF文件');
+      return;
+    }
+
+    try {
+      const { redactionMarks } = useUIStore.getState();
+
+      if (redactionMarks.length === 0) {
+        message.warning('没有密文标记可应用');
+        return;
+      }
+
+      // Save original state for undo
+      const originalBytes = new Uint8Array(pdfBytes);
+
+      const command = new RedactCommand(
+        redactionMarks,
+        originalBytes,
+        async (marks) => {
+          // onExecute callback
+          const pdfDoc = await PDFEditor.createFromBytes(pdfBytes);
+
+          // Apply all redactions
+          await PDFEditor.applyRedactions(
+            pdfDoc,
+            marks.map(m => ({
+              pageIndex: m.pageIndex,
+              x: m.x,
+              y: m.y,
+              width: m.width,
+              height: m.height,
+            }))
+          );
+
+          const newBytes = await PDFEditor.saveToBytes(pdfDoc);
+          setPdfBytes(newBytes);
+          const document = await PDFRenderer.loadDocument(getArrayBuffer(newBytes));
+          loadPDF(filePath || '', document, document.numPages);
+
+          // Clear redaction marks
+          clearRedactionMarks();
+
+          addToHistory({
+            type: 'redaction-apply',
+            timestamp: Date.now(),
+            data: { count: marks.length }
+          });
+          markAsUnsaved();
+        },
+        async (originalBytes: Uint8Array) => {
+          // onUndo callback
+          setPdfBytes(originalBytes);
+          const document = await PDFRenderer.loadDocument(getArrayBuffer(originalBytes));
+          loadPDF(filePath || '', document, document.numPages);
+          markAsUnsaved();
+          message.info('已撤销密文应用');
+        }
+      );
+
+      await executeCommand(command);
+    } catch (error) {
+      console.error('Error applying redactions:', error);
+      message.error('应用密文失败');
+      throw error;
+    }
+  }, [pdfBytes, filePath, loadPDF, addToHistory, markAsUnsaved, executeCommand, clearRedactionMarks]);
+
   const handleReplacePage = useCallback(async (sourcePdfBytes: Uint8Array, sourcePageIndex: number) => {
     if (!pdfBytes) return;
     try {
@@ -1072,9 +1191,16 @@ const App: React.FC = () => {
           onExtractImages={() => setImageExtractorVisible(true)}
           onSplitPDF={() => setPdfSplitterVisible(true)}
           onExtractPages={() => setPageExtractorVisible(true)}
+          onAddPageNumbers={() => setPageNumberAdderVisible(true)}
+          onReorderPages={() => setPageReorderVisible(true)}
           onRotatePageLeft={handleRotatePageLeft}
           onRotatePageRight={handleRotatePageRight}
           onFlipPage={handleFlipPage}
+          onRedact={() => {
+            setToolMode('redact');
+            setRedactToolVisible(true);
+            message.info('密文模式 - 拖拽鼠标画框标记密文区域');
+          }}
           sidebar={
             <Sidebar
               pdfDocument={pdfDocument}
@@ -1091,6 +1217,7 @@ const App: React.FC = () => {
                 rotation={getPageRotation(selectedPageIndex)}
                 onEraseRegion={handleEraseContent}
                 onHighlightRegion={handleAddHighlight}
+                onRedactRegion={handleAddRedactionMark}
                 onInsertImageAtPosition={handleInsertImageAtPosition}
                 onInsertTextAtPosition={handleInsertTextAtPosition}
                 onObjectMoveComplete={handleObjectMoveComplete}
@@ -1168,6 +1295,26 @@ const App: React.FC = () => {
         onClose={() => setPageExtractorVisible(false)}
         pdfDocument={pdfDocument}
         pdfBytes={pdfBytes}
+      />
+
+      <PageNumberAdder
+        visible={pageNumberAdderVisible}
+        onClose={() => setPageNumberAdderVisible(false)}
+        totalPages={totalPages}
+        onAddPageNumbers={handleAddPageNumbers}
+      />
+
+      <PageReorder
+        visible={pageReorderVisible}
+        onClose={() => setPageReorderVisible(false)}
+        pdfDocument={pdfDocument}
+        pdfBytes={pdfBytes}
+      />
+
+      <RedactTool
+        visible={redactToolVisible}
+        onClose={() => setRedactToolVisible(false)}
+        onApplyRedactions={handleApplyRedactions}
       />
     </>
   );

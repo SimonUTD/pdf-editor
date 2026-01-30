@@ -772,4 +772,266 @@ export class PDFEditor {
       borderWidth: 0,
     });
   }
+
+  /**
+   * Adds a redaction mark (black rectangle) to cover sensitive content.
+   * Note: This only covers the content visually. The underlying content may still be extractable.
+   *
+   * @param pdfDoc - The PDF document to modify
+   * @param pageIndex - Zero-based index of the page
+   * @param x - X coordinate from top-left
+   * @param y - Y coordinate from top-left
+   * @param width - Width of region to redact
+   * @param height - Height of region to redact
+   */
+  static async addRedaction(
+    pdfDoc: PDFDocument,
+    pageIndex: number,
+    x: number,
+    y: number,
+    width: number,
+    height: number
+  ): Promise<void> {
+    const pageCount = pdfDoc.getPageCount();
+
+    if (pageIndex < 0 || pageIndex >= pageCount) {
+      throw new Error(
+        `Invalid pageIndex: ${pageIndex}. Must be between 0 and ${pageCount - 1}`
+      );
+    }
+
+    if (width <= 0 || height <= 0) {
+      throw new Error(
+        `Invalid dimensions: width (${width}) and height (${height}) must be positive`
+      );
+    }
+
+    const page = pdfDoc.getPage(pageIndex);
+    const pageHeight = page.getHeight();
+
+    // Draw black rectangle to cover content
+    page.drawRectangle({
+      x,
+      y: pageHeight - y - height, // Convert to PDF coordinate system
+      width,
+      height,
+      color: rgb(0, 0, 0),
+      opacity: 1.0,
+      borderWidth: 0,
+    });
+  }
+
+  /**
+   * Applies multiple redaction marks to the PDF document.
+   *
+   * @param pdfDoc - The PDF document to modify
+   * @param marks - Array of redaction marks to apply
+   */
+  static async applyRedactions(
+    pdfDoc: PDFDocument,
+    marks: Array<{
+      pageIndex: number;
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    }>
+  ): Promise<void> {
+    // Sort marks by page index for efficiency
+    const sortedMarks = [...marks].sort((a, b) => a.pageIndex - b.pageIndex);
+
+    // Apply each redaction
+    for (const mark of sortedMarks) {
+      await this.addRedaction(
+        pdfDoc,
+        mark.pageIndex,
+        mark.x,
+        mark.y,
+        mark.width,
+        mark.height
+      );
+    }
+  }
+
+  /**
+   * Adds page numbers to specified pages in a PDF document.
+   *
+   * @param pdfDoc - The PDF document to modify
+   * @param options - Page number options (position, format, startNumber, fontSize, color, rangeMode, pageRange)
+   */
+  static async addPageNumbers(
+    pdfDoc: PDFDocument,
+    options: {
+      position?: 'top' | 'bottom' | 'left' | 'right';
+      format?: 'arabic' | 'roman';
+      startNumber?: number;
+      fontSize?: number;
+      color?: { r: number; g: number; b: number };
+      rangeMode?: 'all' | 'range';
+      pageRange?: string;
+      margin?: number;
+    } = {}
+  ): Promise<void> {
+    const {
+      position = 'bottom',
+      format = 'arabic',
+      startNumber = 1,
+      fontSize = 10,
+      color = { r: 0, g: 0, b: 0 },
+      rangeMode = 'all',
+      pageRange,
+      margin = 20,
+    } = options;
+
+    if (startNumber < 1) {
+      throw new Error('startNumber must be at least 1');
+    }
+
+    if (fontSize <= 0) {
+      throw new Error('fontSize must be positive');
+    }
+
+    const pages = pdfDoc.getPages();
+    const totalPages = pages.length;
+
+    // Determine which pages to add numbers to
+    let targetIndices: number[] = [];
+
+    if (rangeMode === 'all') {
+      targetIndices = Array.from({ length: totalPages }, (_, i) => i);
+    } else if (rangeMode === 'range') {
+      if (!pageRange || pageRange.trim().length === 0) {
+        throw new Error('pageRange must be provided when rangeMode is "range"');
+      }
+
+      // Parse page range (e.g., "1-3,5,7-9") - use Set for O(1) deduplication
+      const indexSet = new Set<number>();
+      const parts = pageRange.split(',');
+
+      for (const part of parts) {
+        const trimmed = part.trim();
+        if (!trimmed) continue;
+
+        if (trimmed.includes('-')) {
+          const [start, end] = trimmed.split('-').map((n) => parseInt(n.trim()));
+          if (
+            isNaN(start) ||
+            isNaN(end) ||
+            start < 1 ||
+            end > totalPages ||
+            start > end
+          ) {
+            throw new Error(`Invalid page range: ${trimmed}`);
+          }
+          for (let i = start; i <= end; i++) {
+            indexSet.add(i - 1);
+          }
+        } else {
+          const page = parseInt(trimmed);
+          if (isNaN(page) || page < 1 || page > totalPages) {
+            throw new Error(`Invalid page number: ${trimmed}`);
+          }
+          indexSet.add(page - 1);
+        }
+      }
+
+      // Convert Set to sorted array
+      targetIndices = Array.from(indexSet).sort((a, b) => a - b);
+
+      if (targetIndices.length === 0) {
+        throw new Error('No valid pages found in page range');
+      }
+    }
+
+    // Embed font
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+
+    // Pre-calculate color for performance (avoid creating object in loop)
+    const pdfColor = rgb(color.r, color.g, color.b);
+
+    // Helper to convert number to Roman numeral (safe, falls back to Arabic)
+    const toRomanSafe = (num: number): string => {
+      if (num <= 0 || num > 3999) {
+        return String(num);
+      }
+      const values = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1];
+      const symbols = ['M', 'CM', 'D', 'CD', 'C', 'XC', 'L', 'XL', 'X', 'IX', 'V', 'IV', 'I'];
+      let result = '';
+      let remaining = num;
+      for (let i = 0; i < values.length; i++) {
+        while (remaining >= values[i]) {
+          result += symbols[i];
+          remaining -= values[i];
+        }
+      }
+      return result;
+    };
+
+    // Add page numbers to target pages
+    targetIndices.forEach((pageIndex, sequenceIndex) => {
+      const page = pages[pageIndex];
+      const { width, height } = page.getSize();
+
+      // Calculate the page number to display
+      const displayNumber = startNumber + sequenceIndex;
+      const text =
+        format === 'roman' ? toRomanSafe(displayNumber).toLowerCase() : String(displayNumber);
+
+      const textWidth = font.widthOfTextAtSize(text, fontSize);
+
+      // Calculate position based on settings
+      let x: number;
+      let y: number;
+      let rotateAngle: number | undefined;
+
+      switch (position) {
+        case 'top':
+          x = (width - textWidth) / 2;
+          y = height - margin - fontSize;
+          rotateAngle = undefined;
+          break;
+        case 'bottom':
+          x = (width - textWidth) / 2;
+          y = margin;
+          rotateAngle = undefined;
+          break;
+        case 'left':
+          // Rotate 90 degrees for left side (vertical text)
+          x = margin + fontSize;
+          y = (height - textWidth) / 2;
+          rotateAngle = 90;
+          break;
+        case 'right':
+          // Rotate 90 degrees for right side (vertical text)
+          x = width - margin;
+          y = (height - textWidth) / 2;
+          rotateAngle = 90;
+          break;
+        default:
+          x = (width - textWidth) / 2;
+          y = margin;
+          rotateAngle = undefined;
+      }
+
+      // Draw the page number
+      if (rotateAngle !== undefined) {
+        page.drawText(text, {
+          x,
+          y,
+          size: fontSize,
+          font,
+          color: pdfColor,
+          rotate: { angle: rotateAngle, type: RotationTypes.Degrees },
+        });
+      } else {
+        page.drawText(text, {
+          x,
+          y,
+          size: fontSize,
+          font,
+          color: pdfColor,
+        });
+      }
+    });
+  }
 }

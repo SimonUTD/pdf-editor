@@ -14,6 +14,7 @@ interface PDFCanvasProps {
   rotation?: number; // 页面旋转角度 (0, 90, 180, 270)
   onEraseRegion?: (x: number, y: number, width: number, height: number) => Promise<void>;
   onHighlightRegion?: (x: number, y: number, width: number, height: number) => Promise<void>;
+  onRedactRegion?: (x: number, y: number, width: number, height: number) => Promise<void>;
   onInsertImageAtPosition?: (pageIndex: number, x: number, y: number) => void;
   onInsertTextAtPosition?: (pageIndex: number, x: number, y: number) => void;
   onObjectMoveComplete?: (id: string, oldPos: { x: number; y: number }, newPos: { x: number; y: number }) => void;
@@ -27,6 +28,7 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
   rotation = 0,
   onEraseRegion,
   onHighlightRegion,
+  onRedactRegion,
   onInsertImageAtPosition,
   onInsertTextAtPosition,
   onObjectMoveComplete,
@@ -37,7 +39,7 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
   const [loading, setLoading] = useState(true);
-  const { zoom, toolMode, viewMode, searchResults, currentMatchIndex } = useUIStore();
+  const { zoom, toolMode, viewMode, searchResults, currentMatchIndex, redactionMarks } = useUIStore();
 
   // 启用文本选择复制
   useTextSelection();
@@ -150,7 +152,7 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
     updateZoomForViewMode();
   }, [viewMode, pdfDocument, pageNumber, rotation]); // 移除zoom依赖
 
-  // 当拖拽状态改变时，绘制选择框
+  // 当拖拽状态改变时，绘制选择框和密文标记
   useEffect(() => {
     if (!overlayCanvasRef.current) return;
 
@@ -160,6 +162,25 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
 
     // 清空覆盖层
     ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+
+    // 绘制当前页的密文标记
+    const currentPageMarks = redactionMarks.filter(m => m.pageIndex === pageNumber - 1);
+    currentPageMarks.forEach(mark => {
+      const x = mark.x * zoom;
+      const y = mark.y * zoom;
+      const w = mark.width * zoom;
+      const h = mark.height * zoom;
+
+      // 绘制黑色半透明矩形
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+      ctx.fillRect(x, y, w, h);
+
+      // 绘制边框
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([]);
+      ctx.strokeRect(x, y, w, h);
+    });
 
     if (!isDragging && !dragStart.x && !dragStart.y) {
       return;
@@ -172,15 +193,24 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
     const height = Math.abs(dragEnd.y - dragStart.y);
 
     // 绘制选择矩形
-    ctx.strokeStyle = toolMode === 'erase' ? '#ff4d4f' : '#ffec3d';
+    if (toolMode === 'erase') {
+      ctx.strokeStyle = '#ff4d4f';
+      ctx.fillStyle = 'rgba(255, 77, 79, 0.1)';
+    } else if (toolMode === 'highlight') {
+      ctx.strokeStyle = '#ffec3d';
+      ctx.fillStyle = 'rgba(255, 236, 61, 0.2)';
+    } else if (toolMode === 'redact') {
+      ctx.strokeStyle = '#ff0000';
+      ctx.fillStyle = 'rgba(255, 0, 0, 0.1)';
+    } else {
+      return;
+    }
+
     ctx.lineWidth = 2;
     ctx.setLineDash([5, 5]);
     ctx.strokeRect(x, y, width, height);
-
-    // 绘制半透明填充
-    ctx.fillStyle = toolMode === 'erase' ? 'rgba(255, 77, 79, 0.1)' : 'rgba(255, 236, 61, 0.2)';
     ctx.fillRect(x, y, width, height);
-  }, [isDragging, dragStart, dragEnd, toolMode]);
+  }, [isDragging, dragStart, dragEnd, toolMode, redactionMarks, pageNumber, zoom]);
 
   // Render search highlights
   useEffect(() => {
@@ -290,6 +320,9 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
       } else if (toolMode === 'highlight' && onHighlightRegion) {
         await onHighlightRegion(x, y, scaledWidth, scaledHeight);
         message.success('高亮添加成功');
+      } else if (toolMode === 'redact' && onRedactRegion) {
+        await onRedactRegion(x, y, scaledWidth, scaledHeight);
+        message.success('密文标记已添加');
       }
     } catch (error) {
       console.error('操作失败:', error);
@@ -307,6 +340,7 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
     if (toolMode === 'view') return 'default';
     if (toolMode === 'erase') return 'crosshair';
     if (toolMode === 'highlight') return 'crosshair';
+    if (toolMode === 'redact') return 'crosshair';
     if (toolMode === 'insert-image') return 'cell';
     if (toolMode === 'insert-text') return 'text';
     return 'default';
@@ -415,10 +449,11 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
             backgroundColor:
               toolMode === 'erase' ? '#ff4d4f' :
               toolMode === 'highlight' ? '#ffec3d' :
+              toolMode === 'redact' ? '#ff0000' :
               toolMode === 'insert-image' ? '#1890ff' :
               toolMode === 'insert-text' ? '#52c41a' : '#999',
             color:
-              toolMode === 'erase' || toolMode === 'insert-image' ? '#fff' : '#000',
+              toolMode === 'erase' || toolMode === 'redact' || toolMode === 'insert-image' ? '#fff' : '#000',
             padding: '6px 12px',
             borderRadius: 4,
             fontSize: 12,
@@ -429,6 +464,7 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
         >
           {toolMode === 'erase' ? '擦除模式 - 拖拽鼠标画框' :
            toolMode === 'highlight' ? '高亮模式 - 拖拽鼠标画框' :
+           toolMode === 'redact' ? '密文模式 - 拖拽鼠标画框' :
            toolMode === 'insert-image' ? '插入图片模式 - 点击PDF位置插入' :
            toolMode === 'insert-text' ? '插入文本模式 - 点击PDF位置插入' : ''}
         </div>
