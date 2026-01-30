@@ -145,6 +145,42 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
     ctx.fillRect(x, y, width, height);
   }, [isDragging, dragStart, dragEnd, toolMode]);
 
+  // Render search highlights
+  useEffect(() => {
+    if (!overlayCanvasRef.current || !pdfDocument) return;
+
+    const overlayCanvas = overlayCanvasRef.current;
+    const ctx = overlayCanvas.getContext('2d');
+    if (!ctx) return;
+
+    // Get search results from store
+    const { searchResults, currentMatchIndex } = useUIStore.getState();
+
+    // Clear previous highlights
+    ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+
+    // Get search results for current page
+    const pageResults = searchResults.find((r: any) => r.pageIndex === pageNumber - 1);
+    if (!pageResults) return;
+
+    // Draw highlights
+    pageResults.items.forEach((item: any, index: number) => {
+      const globalIndex = searchResults
+        .slice(0, searchResults.indexOf(pageResults))
+        .reduce((sum: number, r: any) => sum + r.items.length, 0) + index;
+
+      const isCurrentMatch = globalIndex === currentMatchIndex;
+
+      ctx.fillStyle = isCurrentMatch ? 'rgba(255, 200, 0, 0.5)' : 'rgba(255, 255, 0, 0.3)';
+      ctx.fillRect(
+        item.bbox[0] * zoom,
+        item.bbox[1] * zoom,
+        (item.bbox[2] - item.bbox[0]) * zoom,
+        (item.bbox[3] - item.bbox[1]) * zoom
+      );
+    });
+  }, [searchResults, currentMatchIndex, zoom, pageNumber, pdfDocument]);
+
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!containerRef.current) return;
 
