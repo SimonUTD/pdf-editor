@@ -26,6 +26,7 @@ import {
   RotateLeftOutlined,
   RotateRightOutlined,
   SyncOutlined,
+  AppstoreOutlined,
 } from '@ant-design/icons';
 import { useUIStore } from '@/stores';
 import { translate } from '@/constants/translations';
@@ -85,7 +86,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   hasUnsavedChanges,
   canSave,
 }) => {
-  const { zoom, zoomIn, zoomOut, resetZoom, toolMode, setToolMode } = useUIStore();
+  const { zoom, zoomIn, zoomOut, resetZoom, toolMode, setToolMode, showToolsPanel, toggleToolsPanel } = useUIStore();
 
   const exportMenuItems: MenuProps['items'] = [
     {
@@ -303,6 +304,21 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               更多工具
             </Button>
           </Dropdown>
+        </Col>
+
+        <Divider orientation="vertical" />
+
+        {/* 工具箱 */}
+        <Col flex="0 0 auto">
+          <Button
+            size="small"
+            type={showToolsPanel ? 'primary' : 'default'}
+            icon={<AppstoreOutlined />}
+            onClick={toggleToolsPanel}
+            disabled={!canSave}
+          >
+            工具箱
+          </Button>
         </Col>
 
         <Divider orientation="vertical" />

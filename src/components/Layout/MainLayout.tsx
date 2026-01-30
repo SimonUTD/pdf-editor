@@ -1,8 +1,29 @@
-import React from 'react';
-import { Layout } from 'antd';
+import React, { useCallback } from 'react';
+import { Drawer, Layout, message } from 'antd';
+import { ToolsPanel } from '@/components/Tools';
+import { useUIStore } from '@/stores';
 import { Toolbar } from './Toolbar';
 
 const { Sider, Content } = Layout;
+
+// Tool label mapping for display feedback
+const TOOL_LABELS: Record<string, string> = {
+  'view-modes': '查看模式',
+  'quick-jump': '快捷跳转',
+  'text-search': '文本搜索',
+  'pdf-convert': 'PDF转换器',
+  'image-to-pdf': '图片转PDF',
+  'extract-images': '提取图像',
+  'pdf-split': 'PDF拆分',
+  'extract-pages': '页面提取',
+  'reorder-pages': '页面重排',
+  'page-numbers': '添加页码',
+  redact: '标记密文',
+  compress: 'PDF压缩',
+  signature: 'PDF签署',
+  security: '密码保护',
+  optimize: 'PDF优化',
+};
 
 interface MainLayoutProps {
   fileName: string | null;
@@ -61,6 +82,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   sidebar,
   content,
 }) => {
+  const { showToolsPanel, toggleToolsPanel } = useUIStore();
+
+  const handleToolSelect = useCallback((toolKey: string) => {
+    const toolLabel = TOOL_LABELS[toolKey] || toolKey;
+    message.info(toolLabel);
+  }, []);
   return (
     <Layout style={{ height: '100vh' }}>
       <Toolbar
@@ -113,6 +140,16 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
           {content}
         </Content>
       </Layout>
+
+      <Drawer
+        title="工具箱"
+        placement="right"
+        width={320}
+        onClose={toggleToolsPanel}
+        open={showToolsPanel}
+      >
+        <ToolsPanel onToolSelect={handleToolSelect} />
+      </Drawer>
     </Layout>
   );
 };
