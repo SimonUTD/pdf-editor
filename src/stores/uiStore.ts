@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { ViewMode } from '../services/viewer/ViewModeService';
 
 type ToolMode = 'view' | 'erase' | 'highlight' | 'insert-image' | 'insert-text';
 
@@ -9,6 +10,7 @@ interface UIStore {
   sidebarWidth: number;
   toolMode: ToolMode;
   pageRotations: number[]; // 存储每页的旋转角度 (0, 90, 180, 270)
+  viewMode: ViewMode;
 
   // Actions
   setZoom: (zoom: number) => void;
@@ -23,6 +25,7 @@ interface UIStore {
   rotatePageRight: (pageIndex: number) => void;
   flipPage: (pageIndex: number) => void;
   getPageRotation: (pageIndex: number) => number;
+  setViewMode: (mode: ViewMode) => void;
 }
 
 export const useUIStore = create<UIStore>((set, get) => ({
@@ -31,6 +34,7 @@ export const useUIStore = create<UIStore>((set, get) => ({
   sidebarWidth: 200,
   toolMode: 'view',
   pageRotations: [], // 初始化为空数组，加载PDF时填充
+  viewMode: 'fit-page',
 
   setZoom: (zoom) => set({ zoom: Math.max(0.5, Math.min(3.0, zoom)) }),
 
@@ -87,4 +91,6 @@ export const useUIStore = create<UIStore>((set, get) => ({
   getPageRotation: (pageIndex) => {
     return get().pageRotations[pageIndex] || 0;
   },
+
+  setViewMode: (mode) => set({ viewMode: mode }),
 }));
