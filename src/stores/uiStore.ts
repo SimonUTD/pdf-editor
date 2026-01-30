@@ -100,3 +100,5 @@ export const useUIStore = create<UIStore>((set, get) => ({
   toggleToolsPanel: () =>
     set((state) => ({ showToolsPanel: !state.showToolsPanel })),
 }));
+
+export type { ViewMode };

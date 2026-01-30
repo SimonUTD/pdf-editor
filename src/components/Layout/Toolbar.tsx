@@ -30,6 +30,7 @@ import {
 } from '@ant-design/icons';
 import { useUIStore } from '@/stores';
 import { translate } from '@/constants/translations';
+import { ViewModeSelector } from './ViewModeSelector';
 
 const { Text } = Typography;
 
@@ -293,6 +294,13 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               翻转
             </Button>
           </Space>
+        </Col>
+
+        <Divider orientation="vertical" />
+
+        {/* 查看模式 */}
+        <Col flex="0 0 auto">
+          <ViewModeSelector />
         </Col>
 
         <Divider orientation="vertical" />
