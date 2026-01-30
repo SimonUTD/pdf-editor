@@ -6,6 +6,7 @@ import { TextLayer } from './TextLayer';
 import { ObjectLayer } from './ObjectLayer';
 import { useTextSelection } from '@/hooks/useTextSelection';
 import { ViewModeService } from '@/services/viewer/ViewModeService';
+import { TwoPageView } from './TwoPageView';
 
 interface PDFCanvasProps {
   pdfDocument: any;
@@ -243,6 +244,11 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
     // 可以添加到剪贴板历史等功能
   };
 
+  // Calculate two-page layout
+  const shouldShowTwoPage = viewMode === 'two-page';
+  const leftPageNumber = shouldShowTwoPage && pageNumber % 2 === 1 ? pageNumber : pageNumber - 1;
+  const rightPageNumber = leftPageNumber + 1;
+
   return (
     <div
       ref={containerRef}
@@ -271,23 +277,33 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
       )}
 
       {/* PDF 渲染层 */}
-      <canvas
-        ref={canvasRef}
-        style={{
-          display: loading ? 'none' : 'block',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-        }}
-      />
-
-      {/* 文本选择层 */}
-      {!loading && toolMode === 'view' && (
-        <TextLayer
+      {viewMode === 'two-page' ? (
+        <TwoPageView
           pdfDocument={pdfDocument}
-          pageNumber={pageNumber}
-          scale={zoom}
-          rotation={0}
-          onTextCopy={handleTextCopy}
+          leftPageNumber={leftPageNumber}
+          rightPageNumber={rightPageNumber}
         />
+      ) : (
+        <>
+          <canvas
+            ref={canvasRef}
+            style={{
+              display: loading ? 'none' : 'block',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+            }}
+          />
+
+          {/* 文本选择层 */}
+          {!loading && toolMode === 'view' && (
+            <TextLayer
+              pdfDocument={pdfDocument}
+              pageNumber={pageNumber}
+              scale={zoom}
+              rotation={0}
+              onTextCopy={handleTextCopy}
+            />
+          )}
+        </>
       )}
 
       {/* 对象层 - 插入的图片和文本 */}
