@@ -102,7 +102,15 @@ export const TwoPageView: React.FC<TwoPageViewProps> = ({
   const showRightPage = rightPageNumber > 0 && rightPageNumber <= totalPages;
 
   return (
-    <div style={{ display: 'flex', gap: 20, justifyContent: 'center', alignItems: 'flex-start', position: 'relative' }}>
+    <div style={{
+      display: 'flex',
+      gap: 20,
+      justifyContent: 'center',
+      alignItems: 'flex-start',
+      position: 'relative',
+      width: '100%',
+      minHeight: '100%'
+    }}>
       {loading && (
         <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 10 }}>
           <Spin size="large" />
@@ -115,8 +123,7 @@ export const TwoPageView: React.FC<TwoPageViewProps> = ({
           style={{
             boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
             display: loading ? 'none' : 'block',
-            maxWidth: '100%',
-            height: 'auto'
+            flexShrink: 0
           }}
         />
       )}
@@ -127,8 +134,7 @@ export const TwoPageView: React.FC<TwoPageViewProps> = ({
           style={{
             boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
             display: loading ? 'none' : 'block',
-            maxWidth: '100%',
-            height: 'auto'
+            flexShrink: 0
           }}
         />
       )}
