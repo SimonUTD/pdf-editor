@@ -34,6 +34,7 @@ import {
   SearchOutlined,
   EyeOutlined,
   StopOutlined,
+  FormOutlined,
 } from '@ant-design/icons';
 import { useUIStore } from '@/stores';
 import { PageJumpControl } from './PageJumpControl';
@@ -62,10 +63,14 @@ interface ToolbarProps {
   onExtractPages: () => void;
   onAddPageNumbers: () => void;
   onReorderPages?: () => void;
+  onOptimizePDF?: () => void;
   onRotatePageLeft?: () => void;
   onRotatePageRight?: () => void;
   onFlipPage?: () => void;
   onRedact?: () => void;
+  onCompressPDF?: () => void;
+  onAddSignature?: () => void;
+  onPasswordProtect?: () => void;
   onUndo?: () => void;
   onRedo?: () => void;
   canUndo?: boolean;
@@ -96,10 +101,14 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   onExtractPages,
   onAddPageNumbers,
   onReorderPages,
+  onOptimizePDF,
   onRotatePageLeft,
   onRotatePageRight,
   onFlipPage,
   onRedact,
+  onCompressPDF,
+  onAddSignature,
+  onPasswordProtect,
   onUndo,
   onRedo,
   canUndo = false,
@@ -293,16 +302,19 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           <Divider orientation="vertical" style={{ margin: '0 8px' }} />
 
           <Text style={{ fontSize: 12, color: '#999', marginRight: 4 }}>高级:</Text>
-          <Button size="small" icon={<CompressOutlined />} disabled={!canSave} onClick={() => {}}>
+          <Button size="small" icon={<CompressOutlined />} disabled={!canSave} onClick={onCompressPDF}>
             PDF压缩
           </Button>
           <Button size="small" icon={<SafetyOutlined />} disabled={!canSave} onClick={() => {}}>
             标记密文
           </Button>
-          <Button size="small" icon={<KeyOutlined />} disabled={!canSave} onClick={() => {}}>
+          <Button size="small" icon={<KeyOutlined />} disabled={!canSave} onClick={onPasswordProtect}>
             密码保护
           </Button>
-          <Button size="small" icon={<SettingOutlined />} disabled={!canSave} onClick={() => {}}>
+          <Button size="small" icon={<FormOutlined />} disabled={!canSave} onClick={onAddSignature}>
+            PDF签名
+          </Button>
+          <Button size="small" icon={<SettingOutlined />} disabled={!canSave} onClick={onOptimizePDF}>
             PDF优化
           </Button>
         </Space>

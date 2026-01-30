@@ -30,10 +30,14 @@ interface MainLayoutProps {
   onExtractPages: () => void;
   onAddPageNumbers: () => void;
   onReorderPages?: () => void;
+  onOptimizePDF?: () => void;
   onRotatePageLeft?: () => void;
   onRotatePageRight?: () => void;
   onFlipPage?: () => void;
   onRedact?: () => void;
+  onCompressPDF?: () => void;
+  onAddSignature?: () => void;
+  onPasswordProtect?: () => void;
   onUndo?: () => void;
   onRedo?: () => void;
   canUndo?: boolean;
@@ -66,10 +70,14 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   onExtractPages,
   onAddPageNumbers,
   onReorderPages,
+  onOptimizePDF,
   onRotatePageLeft,
   onRotatePageRight,
   onFlipPage,
   onRedact,
+  onCompressPDF,
+  onAddSignature,
+  onPasswordProtect,
   onUndo,
   onRedo,
   canUndo = false,
@@ -100,9 +108,13 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         onExtractPages={onExtractPages}
         onAddPageNumbers={onAddPageNumbers}
         onReorderPages={onReorderPages}
+        onOptimizePDF={onOptimizePDF}
         onRotatePageLeft={onRotatePageLeft}
         onRotatePageRight={onRotatePageRight}
         onFlipPage={onFlipPage}
+        onCompressPDF={onCompressPDF}
+        onAddSignature={onAddSignature}
+        onPasswordProtect={onPasswordProtect}
         onUndo={onUndo}
         onRedo={onRedo}
         canUndo={canUndo}

@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { ConfigProvider, theme, Empty, Modal, Input, App as AntdApp } from 'antd';
+import { ConfigProvider, theme, Empty, Modal, Input, App as AntdApp, Alert } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import { MainLayout } from './components/Layout/MainLayout';
 import { Sidebar } from './components/PDFViewer/Sidebar';
@@ -17,6 +17,10 @@ import { PageExtractor } from './components/Editors/PageExtractor';
 import { PageNumberAdder } from './components/Editors/PageNumberAdder';
 import { PageReorder } from './components/Editors/PageReorder';
 import { RedactTool } from './components/Editors/RedactTool';
+import { PDFCompressor } from './components/Editors/PDFCompressor';
+import { PDFOptimizer } from './components/Editors/PDFOptimizer';
+import { SignatureTool, SignatureOptions } from './components/Editors/SignatureTool';
+import { PasswordProtector, PDFPasswordProtectionOptions } from './components/Editors/PasswordProtector';
 import { PDFRenderer } from './services/pdfRenderer';
 import { PDFEditor } from './services/pdfEditor';
 import { ExportService } from './services/exportService';
@@ -75,6 +79,11 @@ const App: React.FC = () => {
   const [redactToolVisible, setRedactToolVisible] = useState(false);
   const [pageNumberAdderVisible, setPageNumberAdderVisible] = useState(false);
   const [pageReorderVisible, setPageReorderVisible] = useState(false);
+  const [pdfCompressorVisible, setPdfCompressorVisible] = useState(false);
+  const [pdfOptimizerVisible, setPdfOptimizerVisible] = useState(false);
+  const [signatureToolVisible, setSignatureToolVisible] = useState(false);
+  const [passwordProtectorVisible, setPasswordProtectorVisible] = useState(false);
+  const [pendingSignature, setPendingSignature] = useState<SignatureOptions | null>(null);
 
 
   // Command history for undo/redo
@@ -595,6 +604,203 @@ const App: React.FC = () => {
     // 退出插入模式
     setToolMode('view');
   }, [pdfBytes, objects.length, addObject, setToolMode, executeCommand, addToHistory, markAsUnsaved]);
+
+  // 处理签名选项 - 准备签名模式
+  const handleAddSignature = useCallback(async (options: SignatureOptions) => {
+    setPendingSignature(options);
+    setToolMode('insert-signature');
+    message.info('点击PDF位置放置签名');
+  }, [setToolMode]);
+
+  // 插入签名到指定位置
+  const handleInsertSignatureAtPosition = useCallback(async (pageIndex: number, x: number, y: number) => {
+    if (!pendingSignature || !pdfBytes) {
+      message.error('没有待放置的签名');
+      setToolMode('view');
+      return;
+    }
+
+    try {
+      const { imageBytes, imageWidth, imageHeight, addDate, dateText, dateFontSize, dateColor } = pendingSignature;
+
+      // 将签名图片转换为base64
+      const base64 = `data:image/png;base64,${btoa(String.fromCharCode(...imageBytes))}`;
+
+      // 创建签名图片对象
+      const signatureImageObject: ImageObject = {
+        id: `signature-img-${Date.now()}-${Math.random()}`,
+        type: 'image',
+        pageIndex,
+        position: { x, y },
+        size: { width: imageWidth, height: imageHeight },
+        zIndex: objects.length + 1,
+        selected: false,
+        content: base64,
+        opacity: 1,
+      };
+
+      // 使用ImageInsertCommand插入签名图片
+      const imageCommand = new ImageInsertCommand(
+        signatureImageObject,
+        async (obj) => {
+          addObject(obj);
+          markAsUnsaved();
+          addToHistory({
+            type: 'image-insert',
+            timestamp: Date.now(),
+            data: {
+              pageIndex: obj.pageIndex,
+              x: obj.position.x,
+              y: obj.position.y,
+              width: obj.size.width,
+              height: obj.size.height,
+            },
+          });
+        },
+        async (id) => {
+          useObjectStore.getState().deleteObject(id);
+          markAsUnsaved();
+        }
+      );
+
+      await executeCommand(imageCommand);
+
+      // 如果需要添加日期，在签名下方创建文本对象
+      if (addDate && dateText && dateFontSize && dateColor) {
+        const dateX = x;
+        const dateY = y - 20; // 在签名下方20像素
+
+        const dateObject: TextObject = {
+          id: `signature-date-${Date.now()}-${Math.random()}`,
+          type: 'text',
+          pageIndex,
+          position: { x: dateX, y: dateY },
+          size: { width: 150, height: 30 },
+          zIndex: objects.length + 2,
+          selected: false,
+          content: dateText,
+          style: {
+            fontSize: dateFontSize,
+            color: `#${Math.round(dateColor.r * 255).toString(16).padStart(2, '0')}${Math.round(dateColor.g * 255).toString(16).padStart(2, '0')}${Math.round(dateColor.b * 255).toString(16).padStart(2, '0')}`,
+            fontFamily: 'sans-serif',
+            opacity: 1,
+          },
+        };
+
+        const textCommand = new TextInsertCommand(
+          dateObject,
+          async (obj) => {
+            addObject(obj);
+            markAsUnsaved();
+            addToHistory({
+              type: 'text-insert',
+              timestamp: Date.now(),
+              data: {
+                pageIndex: obj.pageIndex,
+                text: obj.content,
+                x: obj.position.x,
+                y: obj.position.y,
+                fontSize: obj.style.fontSize,
+                color: dateColor,
+              },
+            });
+          },
+          async (id) => {
+            useObjectStore.getState().deleteObject(id);
+            markAsUnsaved();
+          }
+        );
+
+        await executeCommand(textCommand);
+      }
+
+      message.success('签名已添加，可拖拽调整位置和大小');
+      setPendingSignature(null);
+      setToolMode('view');
+    } catch (error) {
+      console.error('Error inserting signature:', error);
+      message.error('插入签名失败');
+      setToolMode('view');
+    }
+  }, [pendingSignature, pdfBytes, objects.length, addObject, setToolMode, executeCommand, addToHistory, markAsUnsaved]);
+
+  // 处理密码保护
+  const handleProtectPDF = useCallback(async (options: PDFPasswordProtectionOptions) => {
+    if (!pdfBytes) {
+      message.error(getMessage('没有可加密的 PDF 文档'));
+      return;
+    }
+
+    try {
+      // 由于 pdf-lib 1.17.1 不直接支持加密，我们需要使用外部方法
+      // 这里先实现一个基础版本，将加密后的 PDF 下载到本地
+
+      // 注意：pdf-lib 没有直接的加密 API
+      // 我们需要使用其他方法，比如：
+      // 1. 使用 qpdf 命令行工具（需要通过 Electron 主进程调用）
+      // 2. 使用其他支持加密的 Node.js 库
+      // 3. 在主进程中通过 child_process 调用系统工具
+
+      // 暂时的解决方案：提示用户使用外部工具
+      const configText = `用户密码: ${options.userPassword}\n所有者密码: ${options.ownerPassword}\n允许打印: ${options.permissions.printing ? '是' : '否'}\n允许复制: ${options.permissions.copying ? '是' : '否'}\n允许编辑: ${options.permissions.modifying ? '是' : '否'}`;
+
+      // 尝试复制到剪贴板
+      let copySuccess = false;
+      try {
+        await navigator.clipboard.writeText(configText);
+        copySuccess = true;
+      } catch (clipboardError) {
+        console.warn('Failed to copy to clipboard:', clipboardError);
+        // 剪贴板复制失败不是致命错误，继续执行
+      }
+
+      Modal.info({
+        title: getMessage('密码保护 - 需要外部工具'),
+        content: (
+          <div>
+            <p>{getMessage('由于技术限制，当前版本需要使用外部工具来完成 PDF 加密。')}</p>
+            <p><strong>{getMessage('推荐的加密工具：')}</strong></p>
+            <ul>
+              <li>qPDF: <code>qpdf --encrypt user-password owner-password 256 -- input.pdf output.pdf</code></li>
+              <li>PDFtk: <code>pdftk input.pdf output output.pdf user_pw user-password owner_pw owner-password</code></li>
+            </ul>
+            <p><strong>{getMessage('您的加密配置：')}</strong></p>
+            <pre style={{ background: '#f5f5f5', padding: 8, borderRadius: 4, fontSize: 12 }}>
+              {configText}
+            </pre>
+            {copySuccess ? (
+              <Alert
+                message={getMessage('配置已复制到剪贴板')}
+                type="success"
+                showIcon
+                style={{ marginTop: 12 }}
+              />
+            ) : (
+              <Alert
+                message={getMessage('自动复制失败，请手动复制上面的配置')}
+                type="warning"
+                showIcon
+                style={{ marginTop: 12 }}
+              />
+            )}
+            <Alert
+              message={getMessage('安全提示')}
+              description={getMessage('密码已显示在界面上，请注意周围环境安全。使用后请及时清除剪贴板。')}
+              type="warning"
+              showIcon
+              style={{ marginTop: 12 }}
+            />
+          </div>
+        ),
+        width: 700,
+        okText: getMessage('知道了'),
+      });
+
+    } catch (error) {
+      console.error('Error preparing PDF protection:', error);
+      // 不 throw，避免组件层重复提示
+    }
+  }, [pdfBytes]);
 
 
   // Handle object move complete - create and execute move command
@@ -1193,6 +1399,7 @@ const App: React.FC = () => {
           onExtractPages={() => setPageExtractorVisible(true)}
           onAddPageNumbers={() => setPageNumberAdderVisible(true)}
           onReorderPages={() => setPageReorderVisible(true)}
+          onOptimizePDF={() => setPdfOptimizerVisible(true)}
           onRotatePageLeft={handleRotatePageLeft}
           onRotatePageRight={handleRotatePageRight}
           onFlipPage={handleFlipPage}
@@ -1201,6 +1408,9 @@ const App: React.FC = () => {
             setRedactToolVisible(true);
             message.info('密文模式 - 拖拽鼠标画框标记密文区域');
           }}
+          onCompressPDF={() => setPdfCompressorVisible(true)}
+          onAddSignature={() => setSignatureToolVisible(true)}
+          onPasswordProtect={() => setPasswordProtectorVisible(true)}
           sidebar={
             <Sidebar
               pdfDocument={pdfDocument}
@@ -1220,6 +1430,7 @@ const App: React.FC = () => {
                 onRedactRegion={handleAddRedactionMark}
                 onInsertImageAtPosition={handleInsertImageAtPosition}
                 onInsertTextAtPosition={handleInsertTextAtPosition}
+                onInsertSignatureAtPosition={handleInsertSignatureAtPosition}
                 onObjectMoveComplete={handleObjectMoveComplete}
                 onObjectResizeComplete={handleObjectResizeComplete}
                 onObjectRotateComplete={handleObjectRotateComplete}
@@ -1315,6 +1526,33 @@ const App: React.FC = () => {
         visible={redactToolVisible}
         onClose={() => setRedactToolVisible(false)}
         onApplyRedactions={handleApplyRedactions}
+      />
+
+      <PDFCompressor
+        visible={pdfCompressorVisible}
+        onClose={() => setPdfCompressorVisible(false)}
+        pdfBytes={pdfBytes}
+        onReplaceDocument={reloadPDF}
+      />
+
+      <PDFOptimizer
+        visible={pdfOptimizerVisible}
+        onClose={() => setPdfOptimizerVisible(false)}
+        pdfBytes={pdfBytes}
+        onReplaceDocument={reloadPDF}
+      />
+
+      <SignatureTool
+        visible={signatureToolVisible}
+        onClose={() => setSignatureToolVisible(false)}
+        onAddSignature={handleAddSignature}
+      />
+
+      <PasswordProtector
+        visible={passwordProtectorVisible}
+        onClose={() => setPasswordProtectorVisible(false)}
+        pdfBytes={pdfBytes}
+        onProtect={handleProtectPDF}
       />
     </>
   );
