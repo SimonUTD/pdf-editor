@@ -38,10 +38,9 @@ A cross-platform desktop PDF editor built with Electron, React, and TypeScript.
 - ✅ Add highlights to regions with custom colors
 
 ### Phase 5: Complete Feature Enhancement 🚧 (In Development)
-- ✅ View modes (1:1, fit page, fit width)
+- ✅ View modes (1:1, fit page, fit width, two-page)
 - ✅ Quick page navigation
-- 🚧 Two-page view mode (coming soon)
-- 🚧 Text search in PDF
+- ✅ Text search in PDF
 - 🚧 PDF converter (to TXT, Word, Images)
 - 🚧 Images to PDF converter
 - 🚧 Extract images from PDF
