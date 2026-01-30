@@ -31,6 +31,7 @@ import {
 import { useUIStore } from '@/stores';
 import { translate } from '@/constants/translations';
 import { ViewModeSelector } from './ViewModeSelector';
+import { PageJumpControl } from './PageJumpControl';
 
 const { Text } = Typography;
 
@@ -301,6 +302,13 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         {/* 查看模式 */}
         <Col flex="0 0 auto">
           <ViewModeSelector />
+        </Col>
+
+        <Divider orientation="vertical" />
+
+        {/* 页面跳转 */}
+        <Col flex="0 0 auto">
+          <PageJumpControl />
         </Col>
 
         <Divider orientation="vertical" />
