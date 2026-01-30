@@ -12,6 +12,7 @@ import { HeaderFooterEditor } from './components/Editors/HeaderFooterEditor';
 import { PageReplacer } from './components/Editors/PageReplacer';
 import { ImagesToPDF } from './components/Editors/ImagesToPDF';
 import { ImageExtractor } from './components/Editors/ImageExtractor';
+import { PDFSplitter } from './components/Editors/PDFSplitter';
 import { PDFRenderer } from './services/pdfRenderer';
 import { PDFEditor } from './services/pdfEditor';
 import { ExportService } from './services/exportService';
@@ -62,6 +63,7 @@ const App: React.FC = () => {
   const [pageReplacerVisible, setPageReplacerVisible] = useState(false);
   const [imagesToPDFVisible, setImagesToPDFVisible] = useState(false);
   const [imageExtractorVisible, setImageExtractorVisible] = useState(false);
+  const [pdfSplitterVisible, setPdfSplitterVisible] = useState(false);
 
 
   // Command history for undo/redo
@@ -1066,6 +1068,7 @@ const App: React.FC = () => {
           onReversePages={handleReversePages}
           onImagesToPDF={() => setImagesToPDFVisible(true)}
           onExtractImages={() => setImageExtractorVisible(true)}
+          onSplitPDF={() => setPdfSplitterVisible(true)}
           onRotatePageLeft={handleRotatePageLeft}
           onRotatePageRight={handleRotatePageRight}
           onFlipPage={handleFlipPage}
@@ -1148,6 +1151,13 @@ const App: React.FC = () => {
         visible={imageExtractorVisible}
         onClose={() => setImageExtractorVisible(false)}
         pdfDocument={pdfDocument}
+      />
+
+      <PDFSplitter
+        visible={pdfSplitterVisible}
+        onClose={() => setPdfSplitterVisible(false)}
+        pdfDocument={pdfDocument}
+        pdfBytes={pdfBytes}
       />
     </>
   );
