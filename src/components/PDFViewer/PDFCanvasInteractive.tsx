@@ -5,6 +5,7 @@ import { useUIStore } from '@/stores';
 import { TextLayer } from './TextLayer';
 import { ObjectLayer } from './ObjectLayer';
 import { useTextSelection } from '@/hooks/useTextSelection';
+import { ViewModeService } from '@/services/viewer/ViewModeService';
 
 interface PDFCanvasProps {
   pdfDocument: any;
@@ -35,7 +36,7 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
   const [loading, setLoading] = useState(true);
-  const { zoom, toolMode } = useUIStore();
+  const { zoom, toolMode, viewMode } = useUIStore();
 
   // 启用文本选择复制
   useTextSelection();
@@ -83,6 +84,33 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
       cancelled = true;
     };
   }, [pdfDocument, pageNumber, zoom, rotation]);
+
+  // Calculate zoom based on view mode
+  useEffect(() => {
+    if (!containerRef.current || !pdfDocument) return;
+
+    const updateZoomForViewMode = async () => {
+      const page = await pdfDocument.getPage(pageNumber);
+      const viewport = page.getViewport({ scale: 1.0, rotation });
+
+      const container = containerRef.current;
+      const containerWidth = container.clientWidth;
+      const containerHeight = container.clientHeight;
+
+      const newZoom = ViewModeService.calculateZoom(
+        viewMode,
+        viewport.width,
+        viewport.height,
+        containerWidth,
+        containerHeight
+      );
+
+      const { setZoom } = useUIStore.getState();
+      setZoom(newZoom);
+    };
+
+    updateZoomForViewMode();
+  }, [viewMode, pdfDocument, pageNumber, rotation]);
 
   // 当拖拽状态改变时，绘制选择框
   useEffect(() => {
