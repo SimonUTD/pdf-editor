@@ -37,7 +37,7 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
   const [loading, setLoading] = useState(true);
-  const { zoom, toolMode, viewMode } = useUIStore();
+  const { zoom, toolMode, viewMode, searchResults, currentMatchIndex } = useUIStore();
 
   // 启用文本选择复制
   useTextSelection();
