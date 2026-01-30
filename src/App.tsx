@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { ConfigProvider, theme, Empty, Modal, Input, message } from 'antd';
+import { ConfigProvider, theme, Empty, Modal, Input, App as AntdApp } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import { MainLayout } from './components/Layout/MainLayout';
 import { Sidebar } from './components/PDFViewer/Sidebar';
@@ -35,6 +35,7 @@ import {
 } from './commands';
 
 const App: React.FC = () => {
+  const { message } = AntdApp.useApp();
   const { t } = useI18n();
   const { pdfDocument, filePath, totalPages, loadPDF } = usePDFStore();
   const {
@@ -1134,7 +1135,7 @@ const App: React.FC = () => {
     </>
   );
 };
-// Wrap app with ConfigProvider
+// Wrap app with ConfigProvider and AntdApp
 const AppWrapper: React.FC = () => {
   return (
     <ConfigProvider
@@ -1143,7 +1144,9 @@ const AppWrapper: React.FC = () => {
         algorithm: theme.defaultAlgorithm,
       }}
     >
-      <App />
+      <AntdApp>
+        <App />
+      </AntdApp>
     </ConfigProvider>
   );
 };

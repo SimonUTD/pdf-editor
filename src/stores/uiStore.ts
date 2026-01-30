@@ -61,7 +61,7 @@ export const useUIStore = create<UIStore>((set, get) => ({
 
   resetZoom: () => set({ zoom: 1.0 }),
 
-  fitToPage: () => set({ viewMode: 'fit-page' }),
+  fitToPage: () => set({ viewMode: 'fit-page' }), // 切换到fit-page模式，触发useEffect重新计算zoom
 
   selectPage: (index) => set({ selectedPageIndex: index }),
 

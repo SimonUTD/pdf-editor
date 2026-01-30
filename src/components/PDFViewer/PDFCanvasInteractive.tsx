@@ -115,31 +115,40 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
   }, [pdfDocument, pageNumber, zoom, rotation]);
 
   // Calculate zoom based on view mode
+  // 只在viewMode或pageNumber或rotation变化时计算，避免zoom变化导致的循环
   useEffect(() => {
     if (!containerRef.current || !pdfDocument) return;
 
     const updateZoomForViewMode = async () => {
-      const page = await pdfDocument.getPage(pageNumber);
-      const viewport = page.getViewport({ scale: 1.0, rotation });
+      try {
+        const page = await pdfDocument.getPage(pageNumber);
+        const viewport = page.getViewport({ scale: 1.0, rotation });
 
-      const container = containerRef.current!;
-      const containerWidth = container.clientWidth;
-      const containerHeight = container.clientHeight;
+        const container = containerRef.current!;
+        const containerWidth = container.clientWidth;
+        const containerHeight = container.clientHeight;
 
-      const newZoom = ViewModeService.calculateZoom(
-        viewMode,
-        viewport.width,
-        viewport.height,
-        containerWidth,
-        containerHeight
-      );
+        const newZoom = ViewModeService.calculateZoom(
+          viewMode,
+          viewport.width,
+          viewport.height,
+          containerWidth,
+          containerHeight
+        );
 
-      const { setZoom } = useUIStore.getState();
-      setZoom(newZoom);
+        const { setZoom } = useUIStore.getState();
+        // 只有当zoom确实需要改变时才设置，避免无限循环
+        const { zoom } = useUIStore.getState();
+        if (Math.abs(zoom - newZoom) > 0.01) {
+          setZoom(newZoom);
+        }
+      } catch (error) {
+        console.error('Error calculating zoom:', error);
+      }
     };
 
     updateZoomForViewMode();
-  }, [viewMode, pdfDocument, pageNumber, rotation]);
+  }, [viewMode, pdfDocument, pageNumber, rotation]); // 移除zoom依赖
 
   // 当拖拽状态改变时，绘制选择框
   useEffect(() => {
