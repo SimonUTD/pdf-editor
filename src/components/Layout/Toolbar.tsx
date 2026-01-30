@@ -1,6 +1,5 @@
-import React from 'react';
-import { Button, Space, Typography, Divider, Dropdown, Row, Col } from 'antd';
-import type { MenuProps } from 'antd';
+import React, { useEffect } from 'react';
+import { Button, Space, Typography, Divider, Row, Col } from 'antd';
 import {
   FileOutlined,
   SaveOutlined,
@@ -20,13 +19,13 @@ import {
   ScissorOutlined,
   SwapOutlined,
   SortAscendingOutlined,
-  MoreOutlined,
   UndoOutlined,
   RedoOutlined,
   RotateLeftOutlined,
   RotateRightOutlined,
   SyncOutlined,
   AppstoreOutlined,
+  SearchOutlined,
 } from '@ant-design/icons';
 import { useUIStore } from '@/stores';
 import { translate } from '@/constants/translations';
@@ -55,6 +54,7 @@ interface ToolbarProps {
   onFlipPage?: () => void;
   onUndo?: () => void;
   onRedo?: () => void;
+  onShowSearch?: () => void;
   canUndo?: boolean;
   canRedo?: boolean;
   fileName: string | null;
@@ -82,6 +82,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   onFlipPage,
   onUndo,
   onRedo,
+  onShowSearch,
   canUndo = false,
   canRedo = false,
   fileName,
@@ -90,63 +91,18 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 }) => {
   const { zoom, zoomIn, zoomOut, resetZoom, toolMode, setToolMode, showToolsPanel, toggleToolsPanel } = useUIStore();
 
-  const exportMenuItems: MenuProps['items'] = [
-    {
-      key: 'export-images',
-      label: translate('Export as Images (PNG)'),
-      icon: <FileImageOutlined />,
-      onClick: onExportAsImages,
-    },
-    {
-      key: 'export-text',
-      label: translate('Export as Text (TXT)'),
-      icon: <FileTextOutlined />,
-      onClick: onExportAsText,
-    },
-    {
-      key: 'export-word',
-      label: translate('Export as Word (DOCX)'),
-      icon: <FileWordOutlined />,
-      onClick: onExportAsWord,
-    },
-  ];
+  // Keyboard shortcut for search (Ctrl/Cmd + F)
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        onShowSearch?.();
+      }
+    };
 
-  const toolsMenuItems: MenuProps['items'] = [
-    {
-      key: 'merge',
-      label: translate('Merge PDFs'),
-      icon: <MergeCellsOutlined />,
-      onClick: onMergePDFs,
-    },
-    {
-      key: 'watermark',
-      label: translate('Watermark'),
-      icon: <FontColorsOutlined />,
-      onClick: onAddWatermark,
-    },
-    {
-      key: 'header-footer',
-      label: translate('Header/Footer'),
-      icon: <FontSizeOutlined />,
-      onClick: onAddHeaderFooter,
-    },
-    {
-      key: 'divider',
-      type: 'divider',
-    },
-    {
-      key: 'replace',
-      label: '替换页面',
-      icon: <SwapOutlined />,
-      onClick: onReplacePage,
-    },
-    {
-      key: 'reverse',
-      label: translate('Reverse Pages'),
-      icon: <SortAscendingOutlined />,
-      onClick: onReversePages,
-    },
-  ];
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [onShowSearch]);
 
   return (
     <div
@@ -155,6 +111,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         borderBottom: '1px solid #f0f0f0',
       }}
     >
+      {/* 第一行：文件操作、编辑、查看 */}
       <Row align="middle" style={{ padding: '8px 16px' }}>
         {/* 文件操作区 */}
         <Col flex="0 0 auto">
@@ -313,39 +270,17 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
         <Divider orientation="vertical" />
 
-        {/* 更多工具区 */}
-        <Col flex="0 0 auto">
-          <Dropdown menu={{ items: toolsMenuItems }} disabled={!canSave}>
-            <Button size="small" icon={<MoreOutlined />}>
-              更多工具
-            </Button>
-          </Dropdown>
-        </Col>
-
-        <Divider orientation="vertical" />
-
-        {/* 工具箱 */}
+        {/* 搜索 */}
         <Col flex="0 0 auto">
           <Button
             size="small"
-            type={showToolsPanel ? 'primary' : 'default'}
-            icon={<AppstoreOutlined />}
-            onClick={toggleToolsPanel}
+            icon={<SearchOutlined />}
+            onClick={onShowSearch}
             disabled={!canSave}
+            title="搜索 (Ctrl+F)"
           >
-            工具箱
+            搜索
           </Button>
-        </Col>
-
-        <Divider orientation="vertical" />
-
-        {/* 导出区 */}
-        <Col flex="0 0 auto">
-          <Dropdown menu={{ items: exportMenuItems }} disabled={!canSave}>
-            <Button size="small" icon={<ExportOutlined />}>
-              导出
-            </Button>
-          </Dropdown>
         </Col>
 
         <Divider orientation="vertical" />
@@ -372,6 +307,94 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             </Button>
           </Space>
         </Col>
+      </Row>
+
+      {/* 第二行：更多工具和导出 */}
+      <Row align="middle" style={{ padding: '4px 16px', borderTop: '1px solid #f0f0f0' }}>
+        <Space size="small" wrap>
+          {/* PDF工具 */}
+          <Button
+            size="small"
+            icon={<MergeCellsOutlined />}
+            onClick={onMergePDFs}
+            disabled={!canSave}
+          >
+            合并PDF
+          </Button>
+          <Button
+            size="small"
+            icon={<FontColorsOutlined />}
+            onClick={onAddWatermark}
+            disabled={!canSave}
+          >
+            水印
+          </Button>
+          <Button
+            size="small"
+            icon={<FontSizeOutlined />}
+            onClick={onAddHeaderFooter}
+            disabled={!canSave}
+          >
+            页眉页脚
+          </Button>
+          <Button
+            size="small"
+            icon={<SwapOutlined />}
+            onClick={onReplacePage}
+            disabled={!canSave}
+          >
+            替换页面
+          </Button>
+          <Button
+            size="small"
+            icon={<SortAscendingOutlined />}
+            onClick={onReversePages}
+            disabled={!canSave}
+          >
+            倒序页面
+          </Button>
+
+          <Divider orientation="vertical" />
+
+          {/* 导出 */}
+          <Button
+            size="small"
+            icon={<FileImageOutlined />}
+            onClick={onExportAsImages}
+            disabled={!canSave}
+          >
+            导出图片
+          </Button>
+          <Button
+            size="small"
+            icon={<FileTextOutlined />}
+            onClick={onExportAsText}
+            disabled={!canSave}
+          >
+            导出文本
+          </Button>
+          <Button
+            size="small"
+            icon={<FileWordOutlined />}
+            onClick={onExportAsWord}
+            disabled={!canSave}
+          >
+            导出Word
+          </Button>
+
+          <Divider orientation="vertical" />
+
+          {/* 工具箱 */}
+          <Button
+            size="small"
+            type={showToolsPanel ? 'primary' : 'default'}
+            icon={<AppstoreOutlined />}
+            onClick={toggleToolsPanel}
+            disabled={!canSave}
+          >
+            工具箱
+          </Button>
+        </Space>
       </Row>
     </div>
   );

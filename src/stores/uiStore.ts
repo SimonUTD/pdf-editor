@@ -42,7 +42,7 @@ export const useUIStore = create<UIStore>((set, get) => ({
   sidebarWidth: 200,
   toolMode: 'view',
   pageRotations: [], // 初始化为空数组，加载PDF时填充
-  viewMode: 'fit-page',
+  viewMode: 'fit-width',
   showToolsPanel: false,
   searchQuery: '',
   searchResults: [],

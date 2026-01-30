@@ -61,18 +61,25 @@ export const TwoPageView: React.FC<TwoPageViewProps> = ({
     };
   }, [pdfDocument, leftPageNumber, rightPageNumber, zoom, pageRotations]);
 
-  return (
-    <div style={{ display: 'flex', gap: 20, justifyContent: 'center' }}>
-      {loading && <Spin size="large" />}
+  const totalPages = pdfDocument?.numPages || 0;
+  const showRightPage = rightPageNumber > 0 && rightPageNumber <= totalPages;
 
-      {leftPageNumber > 0 && leftCanvasRef.current && (
+  return (
+    <div style={{ display: 'flex', gap: 20, justifyContent: 'center', alignItems: 'flex-start' }}>
+      {loading && (
+        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
+          <Spin size="large" />
+        </div>
+      )}
+
+      {leftPageNumber > 0 && (
         <canvas
           ref={leftCanvasRef}
           style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.15)', display: loading ? 'none' : 'block' }}
         />
       )}
 
-      {rightPageNumber > 0 && rightCanvasRef.current && (
+      {showRightPage && (
         <canvas
           ref={rightCanvasRef}
           style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.15)', display: loading ? 'none' : 'block' }}

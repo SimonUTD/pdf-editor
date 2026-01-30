@@ -49,6 +49,7 @@ interface MainLayoutProps {
   onFlipPage?: () => void;
   onUndo?: () => void;
   onRedo?: () => void;
+  onShowSearch?: () => void;
   canUndo?: boolean;
   canRedo?: boolean;
   sidebar: React.ReactNode;
@@ -78,6 +79,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   onFlipPage,
   onUndo,
   onRedo,
+  onShowSearch,
   canUndo = false,
   canRedo = false,
   sidebar,
@@ -93,6 +95,10 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
       const toolLabel = TOOL_LABELS[toolKey] || toolKey;
       message.info(toolLabel);
     }
+  }, []);
+
+  const handleShowSearch = useCallback(() => {
+    setShowSearchModal(true);
   }, []);
   return (
     <Layout style={{ height: '100vh' }}>
@@ -116,6 +122,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         onFlipPage={onFlipPage}
         onUndo={onUndo}
         onRedo={onRedo}
+        onShowSearch={handleShowSearch}
         canUndo={canUndo}
         canRedo={canRedo}
         fileName={fileName}

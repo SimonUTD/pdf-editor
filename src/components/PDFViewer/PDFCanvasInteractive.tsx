@@ -59,7 +59,14 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
         const page = await pdfDocument.getPage(pageNumber);
         if (cancelled) return;
 
-        await PDFRenderer.renderPageToCanvas(page, canvasRef.current!, {
+        // Clear canvas before rendering to avoid conflicts
+        const canvas = canvasRef.current!;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        await PDFRenderer.renderPageToCanvas(page, canvas, {
           scale: zoom,
           rotation: rotation,
         });
