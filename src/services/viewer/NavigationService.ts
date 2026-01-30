@@ -51,8 +51,8 @@ export class NavigationService {
    *
    * @param _currentPage - Current page number (kept for context, unused in calculation)
    * @param targetPage - Desired target page number (1-based, will be truncated to integer)
-   * @param totalPages - Total number of pages in the document (must be >= 1)
-   * @returns Validated target page number in range [1, totalPages], or 1 if totalPages invalid
+   * @param totalPages - Total number of pages in the document (must be >= 1, will be truncated to integer)
+   * @returns Validated target page number in range [1, totalPages] (always an integer), or 1 if totalPages invalid
    *
    * @example
    * ```ts
@@ -74,7 +74,7 @@ export class NavigationService {
    * valid range before display to ensure consistency.
    *
    * @param currentPage - Current page number (1-based, will be validated and clamped)
-   * @param totalPages - Total number of pages in the document (must be >= 1)
+   * @param totalPages - Total number of pages in the document (must be >= 1, will be truncated to integer for display)
    * @returns Formatted display string, or "-" if totalPages is invalid
    *
    * @example
