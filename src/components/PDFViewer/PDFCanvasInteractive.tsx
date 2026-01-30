@@ -52,6 +52,7 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
     if (!pdfDocument || !canvasRef.current) return;
 
     let cancelled = false;
+    let renderTask: any = null;
     setLoading(true);
 
     const renderPage = async () => {
@@ -66,23 +67,40 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
           ctx.clearRect(0, 0, canvas.width, canvas.height);
         }
 
-        await PDFRenderer.renderPageToCanvas(page, canvas, {
-          scale: zoom,
-          rotation: rotation,
-        });
+        const viewport = page.getViewport({ scale: zoom, rotation });
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
 
-        // 更新 canvas 尺寸
-        if (canvasRef.current) {
-          setCanvasSize({
-            width: canvasRef.current.width,
-            height: canvasRef.current.height,
-          });
+        const renderContext = {
+          canvasContext: ctx,
+          viewport: viewport,
+        };
+
+        renderTask = page.render(renderContext);
+
+        try {
+          await renderTask.promise;
+
+          if (!cancelled) {
+            // 更新 canvas 尺寸
+            setCanvasSize({
+              width: canvas.width,
+              height: canvas.height,
+            });
+            setLoading(false);
+          }
+        } catch (renderError: any) {
+          if (renderError.name === 'RenderingCancelledException') {
+            console.log('Rendering cancelled');
+          } else {
+            throw renderError;
+          }
         }
-
-        setLoading(false);
       } catch (error) {
-        console.error('Error rendering page:', error);
-        setLoading(false);
+        if (!cancelled) {
+          console.error('Error rendering page:', error);
+          setLoading(false);
+        }
       }
     };
 
@@ -90,6 +108,9 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
 
     return () => {
       cancelled = true;
+      if (renderTask) {
+        renderTask.cancel();
+      }
     };
   }, [pdfDocument, pageNumber, zoom, rotation]);
 

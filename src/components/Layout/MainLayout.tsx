@@ -157,7 +157,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
       <Drawer
         title="工具箱"
         placement="right"
-        width={320}
+        size="large"
         onClose={toggleToolsPanel}
         open={showToolsPanel}
       >
