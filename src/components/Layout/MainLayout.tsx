@@ -25,6 +25,7 @@ interface MainLayoutProps {
   onReplacePage: () => void;
   onReversePages: () => void;
   onImagesToPDF: () => void;
+  onExtractImages: () => void;
   onRotatePageLeft?: () => void;
   onRotatePageRight?: () => void;
   onFlipPage?: () => void;
@@ -55,6 +56,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   onReplacePage,
   onReversePages,
   onImagesToPDF,
+  onExtractImages,
   onRotatePageLeft,
   onRotatePageRight,
   onFlipPage,
@@ -83,6 +85,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         onReplacePage={onReplacePage}
         onReversePages={onReversePages}
         onImagesToPDF={onImagesToPDF}
+        onExtractImages={onExtractImages}
         onRotatePageLeft={onRotatePageLeft}
         onRotatePageRight={onRotatePageRight}
         onFlipPage={onFlipPage}

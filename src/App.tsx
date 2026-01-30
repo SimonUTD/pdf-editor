@@ -11,6 +11,7 @@ import { WatermarkEditor } from './components/Editors/WatermarkEditor';
 import { HeaderFooterEditor } from './components/Editors/HeaderFooterEditor';
 import { PageReplacer } from './components/Editors/PageReplacer';
 import { ImagesToPDF } from './components/Editors/ImagesToPDF';
+import { ImageExtractor } from './components/Editors/ImageExtractor';
 import { PDFRenderer } from './services/pdfRenderer';
 import { PDFEditor } from './services/pdfEditor';
 import { ExportService } from './services/exportService';
@@ -60,6 +61,7 @@ const App: React.FC = () => {
   const [headerFooterEditorVisible, setHeaderFooterEditorVisible] = useState(false);
   const [pageReplacerVisible, setPageReplacerVisible] = useState(false);
   const [imagesToPDFVisible, setImagesToPDFVisible] = useState(false);
+  const [imageExtractorVisible, setImageExtractorVisible] = useState(false);
 
 
   // Command history for undo/redo
@@ -1063,6 +1065,7 @@ const App: React.FC = () => {
           onReplacePage={() => setPageReplacerVisible(true)}
           onReversePages={handleReversePages}
           onImagesToPDF={() => setImagesToPDFVisible(true)}
+          onExtractImages={() => setImageExtractorVisible(true)}
           onRotatePageLeft={handleRotatePageLeft}
           onRotatePageRight={handleRotatePageRight}
           onFlipPage={handleFlipPage}
@@ -1139,6 +1142,12 @@ const App: React.FC = () => {
       <ImagesToPDF
         visible={imagesToPDFVisible}
         onClose={() => setImagesToPDFVisible(false)}
+      />
+
+      <ImageExtractor
+        visible={imageExtractorVisible}
+        onClose={() => setImageExtractorVisible(false)}
+        pdfDocument={pdfDocument}
       />
     </>
   );

@@ -55,6 +55,7 @@ interface ToolbarProps {
   onReversePages: () => void;
   onReplacePage: () => void;
   onImagesToPDF: () => void;
+  onExtractImages: () => void;
   onRotatePageLeft?: () => void;
   onRotatePageRight?: () => void;
   onFlipPage?: () => void;
@@ -83,6 +84,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   onReplacePage,
   onReversePages,
   onImagesToPDF,
+  onExtractImages,
   onRotatePageLeft,
   onRotatePageRight,
   onFlipPage,
@@ -230,6 +232,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           <Text style={{ fontSize: 12, color: '#999', marginRight: 4 }}>转换工具:</Text>
           <Button size="small" icon={<FilePdfOutlined />} onClick={onImagesToPDF}>
             图片转PDF
+          </Button>
+          <Button size="small" icon={<FileImageOutlined />} onClick={onExtractImages} disabled={!canSave}>
+            提取图像
           </Button>
           <Button size="small" icon={<SwapOutlined />} disabled={!canSave} onClick={() => {}}>
             PDF转换
