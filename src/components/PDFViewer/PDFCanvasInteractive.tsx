@@ -139,9 +139,13 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
         const page = await pdfDocument.getPage(pageNumber);
         const viewport = page.getViewport({ scale: 1.0, rotation });
 
+        // 使用父容器的尺寸，避免在双页模式下容器被撑大导致计算错误
         const container = containerRef.current!;
-        const containerWidth = container.clientWidth;
-        const containerHeight = container.clientHeight;
+        const parentElement = container.parentElement;
+        const containerWidth = parentElement?.clientWidth || container.clientWidth;
+        const containerHeight = parentElement?.clientHeight || container.clientHeight;
+
+        console.log('[PDFCanvasInteractive] Container size:', containerWidth, 'x', containerHeight);
 
         const newZoom = ViewModeService.calculateZoom(
           viewMode,
