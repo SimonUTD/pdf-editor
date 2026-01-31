@@ -124,8 +124,15 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
   useEffect(() => {
     if (!containerRef.current || !pdfDocument) return;
 
+    const { zoom: currentZoom } = useUIStore.getState();
+
     // two-page 模式和 actual 模式不自动调整 zoom
-    if (viewMode === 'two-page' || viewMode === 'actual') return;
+    if (viewMode === 'two-page' || viewMode === 'actual') {
+      console.log('[PDFCanvasInteractive] Skipping auto-zoom for viewMode:', viewMode, 'current zoom:', currentZoom);
+      return;
+    }
+
+    console.log('[PDFCanvasInteractive] Calculating zoom for viewMode:', viewMode, 'current zoom:', currentZoom);
 
     const updateZoomForViewMode = async () => {
       try {
@@ -144,10 +151,11 @@ export const PDFCanvas: React.FC<PDFCanvasProps> = ({
           containerHeight
         );
 
+        console.log('[PDFCanvasInteractive] Calculated newZoom:', newZoom, 'current zoom:', currentZoom);
+
         const { setZoom } = useUIStore.getState();
-        // 只有当zoom确实需要改变时才设置，避免无限循环
-        const { zoom } = useUIStore.getState();
-        if (Math.abs(zoom - newZoom) > 0.01) {
+        if (Math.abs(currentZoom - newZoom) > 0.01) {
+          console.log('[PDFCanvasInteractive] Setting zoom from', currentZoom, 'to', newZoom);
           setZoom(newZoom);
         }
       } catch (error) {
