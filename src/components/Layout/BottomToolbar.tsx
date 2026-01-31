@@ -85,7 +85,11 @@ export const BottomToolbar: React.FC = () => {
               key={mode.key}
               size="small"
               type={viewMode === mode.key ? 'primary' : 'default'}
-              onClick={() => setViewMode(mode.key)}
+              onClick={() => {
+                // 当切换查看模式时，重置 zoom 到 1.0，避免容器尺寸污染
+                setZoom(1.0);
+                setViewMode(mode.key);
+              }}
             >
               {mode.icon} {mode.label}
             </Button>
