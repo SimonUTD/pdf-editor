@@ -107,12 +107,17 @@ export class PDFRenderer {
         viewport.transform,
         item.transform
       );
-      const fontSize = item.transform[0] * scale;
+      const fontSize = Math.abs(item.transform[0]) * scale;
       const fontFamily = item.fontName || 'sans-serif';
 
+      // PDF坐标系：原点在左下角，需要转换为HTML坐标系（原点在左上角）
+      const x = tx[4];
+      const y = tx[5];
+      const height = item.height || fontSize; // 使用文本高度或字号
+
       textDiv.style.position = 'absolute';
-      textDiv.style.left = `${tx[4]}px`;
-      textDiv.style.top = `${tx[5] - tx[1]}px`; // PDF坐标系转换
+      textDiv.style.left = `${x}px`;
+      textDiv.style.top = `${y - height}px`; // 调整基线位置，使选择高亮与文字对齐
       textDiv.style.fontSize = `${fontSize}px`;
       textDiv.style.fontFamily = fontFamily;
       textDiv.style.color = 'transparent';
@@ -121,6 +126,7 @@ export class PDFRenderer {
       textDiv.style.whiteSpace = 'pre';
       textDiv.style.transformOrigin = '0 0';
       textDiv.style.pointerEvents = 'auto';
+      textDiv.style.lineHeight = '1';
 
       // 添加文本内容
       const textItem = document.createElement('span');
