@@ -1,12 +1,19 @@
 import React, { useState } from 'react';
-import { Button, Space, Typography, Card, message, Modal, Checkbox, InputNumber, Spin, Input } from 'antd';
-import { ScissorOutlined, FileZipOutlined } from '@ant-design/icons';
+import { Button, Space, Typography, Card, message, Modal, Input, Radio, InputNumber, Spin } from 'antd';
+import { ScissorOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import { PDFDocument } from 'pdf-lib';
 import { saveAs } from 'file-saver';
 import JSZip from 'jszip';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 
 const { Text, Title } = Typography;
+
+type SplitMode = 'custom' | 'fixed' | 'average';
+
+interface FileRow {
+  id: string;
+  pages: string;
+}
 
 interface PDFSplitterProps {
   visible: boolean;
@@ -15,19 +22,37 @@ interface PDFSplitterProps {
   pdfBytes: Uint8Array | null;
 }
 
-type SplitMode = 'range' | 'every' | 'individual';
-
 export const PDFSplitter: React.FC<PDFSplitterProps> = ({
   visible,
   onClose,
   pdfDocument,
   pdfBytes,
 }) => {
-  const [splitMode, setSplitMode] = useState<SplitMode>('range');
-  const [pageRanges, setPageRanges] = useState<string>(''); // e.g., "1-3,5,7-9"
-  const [splitEvery, setSplitEvery] = useState<number>(1);
+  const [splitMode, setSplitMode] = useState<SplitMode>('custom');
+  const [rows, setRows] = useState<FileRow[]>([
+    { id: '1', pages: '' },
+    { id: '2', pages: '' },
+  ]);
+  const [fixedPages, setFixedPages] = useState<number>(1);
+  const [averageCount, setAverageCount] = useState<number>(2);
   const [splitting, setSplitting] = useState(false);
-  const [includeOriginal, setIncludeOriginal] = useState(false);
+
+  const addRow = () => {
+    const newId = (rows.length + 1).toString();
+    setRows([...rows, { id: newId, pages: '' }]);
+  };
+
+  const removeRow = (id: string) => {
+    if (rows.length <= 1) {
+      message.warning('至少保留一行');
+      return;
+    }
+    setRows(rows.filter(row => row.id !== id));
+  };
+
+  const updateRow = (id: string, pages: string) => {
+    setRows(rows.map(row => row.id === id ? { ...row, pages } : row));
+  };
 
   const handleSplit = async () => {
     if (!pdfDocument || !pdfBytes) {
@@ -35,112 +60,189 @@ export const PDFSplitter: React.FC<PDFSplitterProps> = ({
       return;
     }
 
+    const totalPages = pdfDocument.numPages;
+
+    if (splitMode === 'custom') {
+      await handleCustomSplit(totalPages);
+    } else if (splitMode === 'fixed') {
+      await handleFixedSplit(totalPages);
+    } else if (splitMode === 'average') {
+      await handleAverageSplit(totalPages);
+    }
+  };
+
+  // 自定义模式：每行一个文件
+  const handleCustomSplit = async (totalPages: number) => {
+    const validRows = rows.filter(row => row.pages.trim() !== '');
+    if (validRows.length === 0) {
+      message.warning('请至少在一行中输入页面号');
+      return;
+    }
+
+    if (!pdfBytes) return;
+
     setSplitting(true);
 
     try {
-      const totalPages = pdfDocument.numPages;
       const pdfDoc = await PDFDocument.load(pdfBytes);
-      let splitCount = 0;
+      const zip = new JSZip();
+      let totalFiles = 0;
 
-      if (splitMode === 'range') {
-        // Split: save each selected page as a separate PDF file
-        const pages = parsePageRanges(pageRanges, totalPages);
-
-        console.log('[PDFSplitter] Parsed pages:', pages);
-        console.log('[PDFSplitter] Total pages to split:', pages.length);
+      for (const row of validRows) {
+        const pages = parsePageRanges(row.pages, totalPages);
 
         if (pages.length === 0) {
-          message.warning('请输入有效的页面范围');
-          setSplitting(false);
-          return;
+          message.warning(`文件 "${row.id}" 的页面范围无效，已跳过`);
+          continue;
         }
 
-        // Create a ZIP file containing all split PDFs
-        const zip = new JSZip();
+        const newPdf = await PDFDocument.create();
+        const copiedPages = await newPdf.copyPages(pdfDoc, pages.map(p => p - 1));
+        copiedPages.forEach((page) => newPdf.addPage(page));
 
-        // Create a separate PDF for each selected page and add to ZIP
-        for (const pageNum of pages) {
-          console.log('[PDFSplitter] Splitting page:', pageNum);
-          const newPdf = await PDFDocument.create();
-          const [copiedPage] = await newPdf.copyPages(pdfDoc, [pageNum - 1]); // Convert to 0-based
-          newPdf.addPage(copiedPage);
+        const pdfBytesOutput = await newPdf.save();
+        const arrayBuffer = pdfBytesOutput.buffer.slice(
+          pdfBytesOutput.byteOffset,
+          pdfBytesOutput.byteOffset + pdfBytesOutput.byteLength
+        ) as ArrayBuffer;
+        const uint8Array = new Uint8Array(arrayBuffer);
 
-          const pdfBytesOutput = await newPdf.save();
-          const arrayBuffer = pdfBytesOutput.buffer.slice(pdfBytesOutput.byteOffset, pdfBytesOutput.byteOffset + pdfBytesOutput.byteLength) as ArrayBuffer;
-          const uint8Array = new Uint8Array(arrayBuffer);
+        const filename = row.id === '1' && validRows.length === 1
+          ? `split-pages.pdf`
+          : `file-${row.id}-${row.pages.replace(/[^a-zA-Z0-9,-]/g, '-')}.pdf`;
 
-          // Add to ZIP
-          zip.file(`page-${pageNum}.pdf`, uint8Array);
-          splitCount++;
-        }
-
-        console.log('[PDFSplitter] Split complete. Total files:', splitCount);
-
-        // Generate ZIP file and download
-        const zipBlob = await zip.generateAsync({ type: 'blob' });
-        saveAs(zipBlob, `split-pages-${Date.now()}.zip`);
-
-        message.success(`成功拆分为 ${splitCount} 个PDF文件，已打包为ZIP下载`);
-      } else if (splitMode === 'every') {
-        // Split every N pages
-        if (splitEvery < 1 || splitEvery > totalPages) {
-          message.warning('请输入有效的拆分间隔');
-          setSplitting(false);
-          return;
-        }
-
-        const zip = new JSZip();
-
-        for (let i = 0; i < totalPages; i += splitEvery) {
-          const newPdf = await PDFDocument.create();
-          const endPage = Math.min(i + splitEvery, totalPages);
-          const pageIndices = [];
-
-          for (let j = i; j < endPage; j++) {
-            pageIndices.push(j);
-          }
-
-          const copiedPages = await newPdf.copyPages(pdfDoc, pageIndices);
-          copiedPages.forEach((page) => newPdf.addPage(page));
-
-          const pdfBytesOutput = await newPdf.save();
-          const arrayBuffer = pdfBytesOutput.buffer.slice(pdfBytesOutput.byteOffset, pdfBytesOutput.byteOffset + pdfBytesOutput.byteLength) as ArrayBuffer;
-          const uint8Array = new Uint8Array(arrayBuffer);
-          zip.file(`split-${i + 1}-${endPage}.pdf`, uint8Array);
-          splitCount++;
-        }
-
-        const zipBlob = await zip.generateAsync({ type: 'blob' });
-        saveAs(zipBlob, `split-every-${splitEvery}-${Date.now()}.zip`);
-        message.success(`成功拆分为 ${splitCount} 个PDF文件，已打包为ZIP下载`);
-      } else if (splitMode === 'individual') {
-        // Split each page into individual PDF
-        const zip = new JSZip();
-
-        for (let i = 0; i < totalPages; i++) {
-          const newPdf = await PDFDocument.create();
-          const [copiedPage] = await newPdf.copyPages(pdfDoc, [i]);
-          newPdf.addPage(copiedPage);
-
-          const pdfBytesOutput = await newPdf.save();
-          const arrayBuffer = pdfBytesOutput.buffer.slice(pdfBytesOutput.byteOffset, pdfBytesOutput.byteOffset + pdfBytesOutput.byteLength) as ArrayBuffer;
-          const uint8Array = new Uint8Array(arrayBuffer);
-          zip.file(`page-${i + 1}.pdf`, uint8Array);
-          splitCount++;
-        }
-
-        const zipBlob = await zip.generateAsync({ type: 'blob' });
-        saveAs(zipBlob, `all-pages-${Date.now()}.zip`);
-        message.success(`成功拆分为 ${splitCount} 个PDF文件，已打包为ZIP下载`);
+        zip.file(filename, uint8Array);
+        totalFiles++;
       }
 
-      // Optionally save original
-      if (includeOriginal) {
-        const arrayBuffer = pdfBytes.buffer.slice(pdfBytes.byteOffset, pdfBytes.byteOffset + pdfBytes.byteLength) as ArrayBuffer;
-        const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
-        saveAs(blob, 'original.pdf');
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      saveAs(zipBlob, `split-pdf-${Date.now()}.zip`);
+
+      message.success(`成功拆分为 ${totalFiles} 个PDF文件，已打包为ZIP下载`);
+      onClose();
+    } catch (error) {
+      console.error('Split error:', error);
+      message.error('拆分失败：' + (error as Error).message);
+    } finally {
+      setSplitting(false);
+    }
+  };
+
+  // 固定页数模式：每X页一个文件
+  const handleFixedSplit = async (totalPages: number) => {
+    if (fixedPages < 1) {
+      message.warning('每份页数必须大于0');
+      return;
+    }
+
+    if (fixedPages > totalPages) {
+      message.warning('每份页数不能超过总页数');
+      return;
+    }
+
+    if (!pdfBytes) return;
+
+    setSplitting(true);
+
+    try {
+      const pdfDoc = await PDFDocument.load(pdfBytes);
+      const zip = new JSZip();
+      let totalFiles = 0;
+
+      for (let start = 1; start <= totalPages; start += fixedPages) {
+        const end = Math.min(start + fixedPages - 1, totalPages);
+        const pages = Array.from({ length: end - start + 1 }, (_, i) => start + i);
+
+        const newPdf = await PDFDocument.create();
+        const copiedPages = await newPdf.copyPages(pdfDoc, pages.map(p => p - 1));
+        copiedPages.forEach((page) => newPdf.addPage(page));
+
+        const pdfBytesOutput = await newPdf.save();
+        const arrayBuffer = pdfBytesOutput.buffer.slice(
+          pdfBytesOutput.byteOffset,
+          pdfBytesOutput.byteOffset + pdfBytesOutput.byteLength
+        ) as ArrayBuffer;
+        const uint8Array = new Uint8Array(arrayBuffer);
+
+        const filename = `pages-${start}-${end}.pdf`;
+        zip.file(filename, uint8Array);
+        totalFiles++;
       }
 
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      saveAs(zipBlob, `split-fixed-${Date.now()}.zip`);
+
+      message.success(`成功拆分为 ${totalFiles} 个PDF文件，已打包为ZIP下载`);
+      onClose();
+    } catch (error) {
+      console.error('Split error:', error);
+      message.error('拆分失败：' + (error as Error).message);
+    } finally {
+      setSplitting(false);
+    }
+  };
+
+  // 平均分割模式：将文件平均分成X份
+  const handleAverageSplit = async (totalPages: number) => {
+    if (averageCount < 1) {
+      message.warning('分割份数必须大于0');
+      return;
+    }
+
+    if (averageCount > totalPages) {
+      message.warning('分割份数不能超过总页数');
+      return;
+    }
+
+    if (!pdfBytes) return;
+
+    setSplitting(true);
+
+    try {
+      const pdfDoc = await PDFDocument.load(pdfBytes);
+      const zip = new JSZip();
+
+      // 计算每份大概有多少页
+      const basePagesPerFile = Math.floor(totalPages / averageCount);
+      const remainder = totalPages % averageCount;
+
+      let currentPage = 1;
+      let totalFiles = 0;
+
+      for (let i = 0; i < averageCount; i++) {
+        // 前面的文件多分配一页（如果有余数）
+        const pagesInThisFile = basePagesPerFile + (i < remainder ? 1 : 0);
+
+        // 如果没有页数分配给这个文件，跳过
+        if (pagesInThisFile === 0) break;
+
+        if (currentPage > totalPages) break;
+
+        const end = Math.min(currentPage + pagesInThisFile - 1, totalPages);
+        const pages = Array.from({ length: end - currentPage + 1 }, (_, j) => currentPage + j);
+
+        const newPdf = await PDFDocument.create();
+        const copiedPages = await newPdf.copyPages(pdfDoc, pages.map(p => p - 1));
+        copiedPages.forEach((page) => newPdf.addPage(page));
+
+        const pdfBytesOutput = await newPdf.save();
+        const arrayBuffer = pdfBytesOutput.buffer.slice(
+          pdfBytesOutput.byteOffset,
+          pdfBytesOutput.byteOffset + pdfBytesOutput.byteLength
+        ) as ArrayBuffer;
+        const uint8Array = new Uint8Array(arrayBuffer);
+
+        const filename = `part-${i + 1}-of-${averageCount}.pdf`;
+        zip.file(filename, uint8Array);
+        totalFiles++;
+
+        currentPage = end + 1;
+      }
+
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      saveAs(zipBlob, `split-average-${Date.now()}.zip`);
+
+      message.success(`成功拆分为 ${totalFiles} 个PDF文件，已打包为ZIP下载`);
       onClose();
     } catch (error) {
       console.error('Split error:', error);
@@ -184,67 +286,92 @@ export const PDFSplitter: React.FC<PDFSplitterProps> = ({
       title={<Title level={4}>拆分PDF</Title>}
       open={visible}
       onCancel={onClose}
-      width={600}
+      width={700}
       footer={null}
     >
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
-        {/* 说明文字 */}
-        <Card size="small">
-          <Text>
-            将指定的每一页单独保存为一个独立的PDF文件，并打包成ZIP下载。例如输入 "1,3,5" 将生成包含 page-1.pdf、page-3.pdf、page-5.pdf 的 ZIP 文件。
-          </Text>
-          <br />
-          <Text type="secondary">
-            注意：如需将多个页面合并到一个文件，请使用"提取页面"功能。
-          </Text>
+        {/* 选择切割模式 */}
+        <Card title="选择切割模式" size="small">
+          <Radio.Group
+            value={splitMode}
+            onChange={(e) => setSplitMode(e.target.value)}
+            style={{ width: '100%' }}
+          >
+            <Space direction="vertical" style={{ width: '100%' }}>
+              <Radio value="custom">
+                <Text strong>自定义模式</Text>
+                <br />
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  每行一个文件，手动指定每个文件包含的页面
+                </Text>
+              </Radio>
+
+              <Radio value="fixed">
+                <Text strong>固定页数模式</Text>
+                <br />
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  每X页切割成一个文件
+                </Text>
+              </Radio>
+
+              <Radio value="average">
+                <Text strong>平均分割模式</Text>
+                <br />
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  将PDF平均分成X份
+                </Text>
+              </Radio>
+            </Space>
+          </Radio.Group>
         </Card>
 
-        {/* 拆分模式选择 */}
-        <Card title="选择操作模式" size="small">
-          <Space direction="vertical" style={{ width: '100%' }}>
-            <Checkbox
-              checked={splitMode === 'range'}
-              onChange={(e) => e.target.checked && setSplitMode('range')}
-            >
-              <Text strong>指定页面拆分（推荐）</Text>
-              <Text type="secondary" style={{ marginLeft: 8 }}>
-                输入页面号，每页单独保存
-              </Text>
-            </Checkbox>
-
-            <Checkbox
-              checked={splitMode === 'every'}
-              onChange={(e) => e.target.checked && setSplitMode('every')}
-            >
-              <Text strong>按间隔拆分</Text>
-              <Text type="secondary" style={{ marginLeft: 8 }}>
-                每N页保存为一个独立文件
-              </Text>
-            </Checkbox>
-
-            <Checkbox
-              checked={splitMode === 'individual'}
-              onChange={(e) => e.target.checked && setSplitMode('individual')}
-            >
-              <Text strong>每页单独保存</Text>
-            </Checkbox>
-          </Space>
-        </Card>
-
-        {/* 拆分参数设置 */}
-        {splitMode === 'range' && (
-          <Card title="输入要拆分的页面" size="small">
-            <Space style={{ width: '100%' }} direction="vertical">
-              <Input
-                placeholder="例如: 1,3,5 或 1-3,5,7-9"
-                value={pageRanges}
-                onChange={(e) => setPageRanges(e.target.value)}
-                disabled={splitting}
-                style={{ width: '100%' }}
-              />
+        {/* 自定义模式：多行输入 */}
+        {splitMode === 'custom' && (
+          <Card title="设置输出文件" size="small">
+            <Space direction="vertical" style={{ width: '100%' }}>
               <Text type="secondary">
-                输入页面号，用逗号分隔。例如: 1,3,5 将拆分为3个文件；1-3,5 表示第1-3页和第5页
+                每行代表一个输出文件，输入该文件要包含的页面。例如：
               </Text>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                • 第1行输入 "1,3,5" → 文件1包含第1、3、5页<br />
+                • 第2行输入 "2,4,6" → 文件2包含第2、4、6页
+              </Text>
+
+              {rows.map((row) => (
+                <Space key={row.id} style={{ width: '100%' }} align="baseline">
+                  <Text strong>文件 {row.id}:</Text>
+                  <Input
+                    placeholder="例如: 1,3,5 或 1-3,5,7-9"
+                    value={row.pages}
+                    onChange={(e) => updateRow(row.id, e.target.value)}
+                    disabled={splitting}
+                    style={{ flex: 1 }}
+                    addonAfter={
+                      rows.length > 1 && (
+                        <Button
+                          type="text"
+                          danger
+                          icon={<DeleteOutlined />}
+                          onClick={() => removeRow(row.id)}
+                          disabled={splitting}
+                        />
+                      )
+                    }
+                  />
+                </Space>
+              ))}
+
+              <Button
+                type="dashed"
+                icon={<PlusOutlined />}
+                onClick={addRow}
+                disabled={splitting}
+                block
+                style={{ marginTop: 8 }}
+              >
+                添加文件
+              </Button>
+
               <Text type="secondary">
                 文档总页数: {totalPages}
               </Text>
@@ -252,46 +379,64 @@ export const PDFSplitter: React.FC<PDFSplitterProps> = ({
           </Card>
         )}
 
-        {splitMode === 'every' && (
-          <Card title="设置拆分间隔" size="small">
-            <Space style={{ width: '100%' }} direction="vertical">
-              <Space>
-                <Text>每</Text>
+        {/* 固定页数模式 */}
+        {splitMode === 'fixed' && (
+          <Card title="设置切割参数" size="small">
+            <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+              <div>
+                <Text strong>每份页数：</Text>
                 <InputNumber
                   min={1}
                   max={totalPages}
-                  value={splitEvery}
-                  onChange={(value) => setSplitEvery(value || 1)}
+                  value={fixedPages}
+                  onChange={(value) => setFixedPages(value || 1)}
                   disabled={splitting}
-                  style={{ width: 100 }}
+                  style={{ marginLeft: 8 }}
                 />
-                <Text>页拆分一次</Text>
-              </Space>
+                <Text type="secondary" style={{ marginLeft: 8 }}>
+                  （总共将生成约 {Math.ceil(totalPages / fixedPages)} 个文件）
+                </Text>
+              </div>
+
               <Text type="secondary">
-                例如: 每2页拆分一次，将生成 {Math.ceil(totalPages / splitEvery)} 个PDF文件
+                例如：10页的PDF，每份3页，将生成4个文件：<br />
+                • 文件1：第1-3页<br />
+                • 文件2：第4-6页<br />
+                • 文件3：第7-9页<br />
+                • 文件4：第10页
               </Text>
             </Space>
           </Card>
         )}
 
-        {splitMode === 'individual' && (
-          <Card title="预览" size="small">
-            <Text>
-              将生成 {totalPages} 个单独的PDF文件，每个文件包含一页
-            </Text>
+        {/* 平均分割模式 */}
+        {splitMode === 'average' && (
+          <Card title="设置切割参数" size="small">
+            <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+              <div>
+                <Text strong>分割份数：</Text>
+                <InputNumber
+                  min={1}
+                  max={totalPages}
+                  value={averageCount}
+                  onChange={(value) => setAverageCount(value || 2)}
+                  disabled={splitting}
+                  style={{ marginLeft: 8 }}
+                />
+                <Text type="secondary" style={{ marginLeft: 8 }}>
+                  （将PDF平均分成 {averageCount} 份）
+                </Text>
+              </div>
+
+              <Text type="secondary">
+                例如：10页的PDF，分成3份，将生成3个文件：<br />
+                • 文件1：第1-4页（4页）<br />
+                • 文件2：第5-8页（4页）<br />
+                • 文件3：第9-10页（2页）
+              </Text>
+            </Space>
           </Card>
         )}
-
-        {/* 其他选项 */}
-        <Card title="其他选项" size="small">
-          <Checkbox
-            checked={includeOriginal}
-            onChange={(e) => setIncludeOriginal(e.target.checked)}
-            disabled={splitting}
-          >
-            同时保存原始PDF文件
-          </Checkbox>
-        </Card>
 
         {/* 操作按钮 */}
         <Card size="small">
@@ -308,9 +453,6 @@ export const PDFSplitter: React.FC<PDFSplitterProps> = ({
             <Button onClick={onClose} disabled={splitting}>
               取消
             </Button>
-            {splitting && (
-              <Spin tip="正在拆分PDF..." />
-            )}
           </Space>
         </Card>
       </Space>
