@@ -42,33 +42,29 @@ export const PDFSplitter: React.FC<PDFSplitterProps> = ({
       let splitCount = 0;
 
       if (splitMode === 'range') {
-        // Extract pages by range and combine into ONE file
-        const ranges = parsePageRanges(pageRanges, totalPages);
+        // Split: save each selected page as a separate PDF file
+        const pages = parsePageRanges(pageRanges, totalPages);
 
-        if (ranges.length === 0) {
+        if (pages.length === 0) {
           message.warning('请输入有效的页面范围');
           setSplitting(false);
           return;
         }
 
-        // Create a single PDF with all selected pages
-        const newPdf = await PDFDocument.create();
-        const allPageIndices: number[] = [];
+        // Create a separate PDF for each selected page
+        for (const pageNum of pages) {
+          const newPdf = await PDFDocument.create();
+          const [copiedPage] = await newPdf.copyPages(pdfDoc, [pageNum - 1]); // Convert to 0-based
+          newPdf.addPage(copiedPage);
 
-        for (const range of ranges) {
-          allPageIndices.push(...range.map(i => i - 1)); // Convert to 0-based
+          const pdfBytesOutput = await newPdf.save();
+          const arrayBuffer = pdfBytesOutput.buffer.slice(pdfBytesOutput.byteOffset, pdfBytesOutput.byteOffset + pdfBytesOutput.byteLength) as ArrayBuffer;
+          const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
+          saveAs(blob, `page-${pageNum}.pdf`);
+          splitCount++;
         }
 
-        const copiedPages = await newPdf.copyPages(pdfDoc, allPageIndices);
-        copiedPages.forEach((page) => newPdf.addPage(page));
-
-        const pdfBytesOutput = await newPdf.save();
-        const arrayBuffer = pdfBytesOutput.buffer.slice(pdfBytesOutput.byteOffset, pdfBytesOutput.byteOffset + pdfBytesOutput.byteLength) as ArrayBuffer;
-        const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
-        saveAs(blob, `extracted-pages-${pageRanges.replace(/[^a-zA-Z0-9,-]/g, '-')}.pdf`);
-        splitCount = 1;
-
-        message.success(`成功提取 ${allPageIndices.length} 页到新文件`);
+        message.success(`成功拆分为 ${splitCount} 个PDF文件`);
       } else if (splitMode === 'every') {
         // Split every N pages
         if (splitEvery < 1 || splitEvery > totalPages) {
@@ -130,9 +126,9 @@ export const PDFSplitter: React.FC<PDFSplitterProps> = ({
     }
   };
 
-  // Parse page ranges like "1-3,5,7-9" into array of arrays
-  const parsePageRanges = (input: string, totalPages: number): number[][] => {
-    const ranges: number[][] = [];
+  // Parse page ranges like "1-3,5,7-9" into array of page numbers
+  const parsePageRanges = (input: string, totalPages: number): number[] => {
+    const pages: number[] = [];
     const parts = input.split(',');
 
     for (const part of parts) {
@@ -142,28 +138,26 @@ export const PDFSplitter: React.FC<PDFSplitterProps> = ({
       if (trimmed.includes('-')) {
         const [start, end] = trimmed.split('-').map(n => parseInt(n.trim()));
         if (!isNaN(start) && !isNaN(end) && start >= 1 && end <= totalPages && start <= end) {
-          const range = [];
           for (let i = start; i <= end; i++) {
-            range.push(i);
+            pages.push(i);
           }
-          ranges.push(range);
         }
       } else {
         const page = parseInt(trimmed);
         if (!isNaN(page) && page >= 1 && page <= totalPages) {
-          ranges.push([page]);
+          pages.push(page);
         }
       }
     }
 
-    return ranges;
+    return pages;
   };
 
   const totalPages = pdfDocument?.numPages || 0;
 
   return (
     <Modal
-      title={<Title level={4}>提取页面（拆分PDF）</Title>}
+      title={<Title level={4}>拆分PDF</Title>}
       open={visible}
       onCancel={onClose}
       width={600}
@@ -173,7 +167,11 @@ export const PDFSplitter: React.FC<PDFSplitterProps> = ({
         {/* 说明文字 */}
         <Card size="small">
           <Text>
-            从当前PDF中选择要提取的页面，保存到新文件中。例如输入 "1-3,5,7-9" 将提取第1-3页、第5页和第7-9页，合并保存为一个新文件。
+            将指定的每一页单独保存为一个独立的PDF文件。例如输入 "1,3,5" 将生成 3 个文件：page-1.pdf、page-3.pdf、page-5.pdf。
+          </Text>
+          <br />
+          <Text type="secondary">
+            注意：如需将多个页面合并到一个文件，请使用"提取页面"功能。
           </Text>
         </Card>
 
@@ -184,9 +182,9 @@ export const PDFSplitter: React.FC<PDFSplitterProps> = ({
               checked={splitMode === 'range'}
               onChange={(e) => e.target.checked && setSplitMode('range')}
             >
-              <Text strong>提取指定页面（推荐）</Text>
+              <Text strong>指定页面拆分（推荐）</Text>
               <Text type="secondary" style={{ marginLeft: 8 }}>
-                选择特定页面保存到新文件
+                输入页面号，每页单独保存
               </Text>
             </Checkbox>
 
@@ -211,17 +209,17 @@ export const PDFSplitter: React.FC<PDFSplitterProps> = ({
 
         {/* 拆分参数设置 */}
         {splitMode === 'range' && (
-          <Card title="输入要提取的页面" size="small">
+          <Card title="输入要拆分的页面" size="small">
             <Space style={{ width: '100%' }} direction="vertical">
               <Input
-                placeholder="例如: 1-3,5,7-9"
+                placeholder="例如: 1,3,5 或 1-3,5,7-9"
                 value={pageRanges}
                 onChange={(e) => setPageRanges(e.target.value)}
                 disabled={splitting}
                 style={{ width: '100%' }}
               />
               <Text type="secondary">
-                输入页面范围，用逗号分隔。例如: 1-3,5,7-9 表示提取第1-3页、第5页、第7-9页，合并到新文件
+                输入页面号，用逗号分隔。例如: 1,3,5 将拆分为3个文件；1-3,5 表示第1-3页和第5页
               </Text>
               <Text type="secondary">
                 文档总页数: {totalPages}
