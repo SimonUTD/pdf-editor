@@ -72,9 +72,15 @@ export class ExportService {
     for (let i = 1; i <= totalPages; i++) {
       const imageDataUrl = await this.exportPageAsImage(pdfDocument, i, format);
 
-      // Convert data URL to blob
-      const response = await fetch(imageDataUrl);
-      const blob = await response.blob();
+      // Convert data URL directly to blob (without using fetch)
+      const byteString = atob(imageDataUrl.split(',')[1]);
+      const mimeString = imageDataUrl.split(',')[0].split(':')[1].split(';')[0];
+      const ab = new ArrayBuffer(byteString.length);
+      const ia = new Uint8Array(ab);
+      for (let j = 0; j < byteString.length; j++) {
+        ia[j] = byteString.charCodeAt(j);
+      }
+      const blob = new Blob([ab], { type: mimeString });
 
       // Download image
       const extension = format === 'png' ? 'png' : 'jpg';

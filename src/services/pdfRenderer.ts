@@ -130,7 +130,7 @@ export class PDFRenderer {
 
       // 添加文本内容
       const textItem = document.createElement('span');
-      let textContent = item.str;
+      let textStr = item.str;
 
       // 检查是否需要在文本后添加换行或空格
       const nextItem = textContent.items[index + 1];
@@ -144,20 +144,20 @@ export class PDFRenderer {
         // 使用阈值判断是否为新行（考虑字体大小）
         const lineHeightThreshold = fontSize * 0.5;
         if (Math.abs(nextY - y) > lineHeightThreshold) {
-          textContent += '\n';
+          textStr += '\n';
         } else if (item.hasEOL) {
           // PDF标记有行结束符
-          textContent += '\n';
+          textStr += '\n';
         } else {
           // 同一行，添加空格（如果PDF中没有显式空格）
           // 检查文本末尾是否已有空格
-          if (!textContent.endsWith(' ')) {
-            textContent += ' ';
+          if (!textStr.endsWith(' ')) {
+            textStr += ' ';
           }
         }
       }
 
-      textItem.textContent = textContent;
+      textItem.textContent = textStr;
       textDiv.appendChild(textItem);
 
       container.appendChild(textDiv);
