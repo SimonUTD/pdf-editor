@@ -26,6 +26,9 @@ dependencies:
   file-saver:
     specifier: ^2.0.5
     version: 2.0.5
+  jszip:
+    specifier: ^3.10.1
+    version: 3.10.1
   pdf-lib:
     specifier: ^1.17.1
     version: 1.17.1

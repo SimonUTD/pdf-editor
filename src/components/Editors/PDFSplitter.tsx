@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Button, Space, Typography, Card, message, Modal, Checkbox, InputNumber, Spin, Input } from 'antd';
-import { ScissorOutlined } from '@ant-design/icons';
+import { ScissorOutlined, FileZipOutlined } from '@ant-design/icons';
 import { PDFDocument } from 'pdf-lib';
 import { saveAs } from 'file-saver';
+import JSZip from 'jszip';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 
 const { Text, Title } = Typography;
@@ -54,7 +55,10 @@ export const PDFSplitter: React.FC<PDFSplitterProps> = ({
           return;
         }
 
-        // Create a separate PDF for each selected page
+        // Create a ZIP file containing all split PDFs
+        const zip = new JSZip();
+
+        // Create a separate PDF for each selected page and add to ZIP
         for (const pageNum of pages) {
           console.log('[PDFSplitter] Splitting page:', pageNum);
           const newPdf = await PDFDocument.create();
@@ -63,13 +67,20 @@ export const PDFSplitter: React.FC<PDFSplitterProps> = ({
 
           const pdfBytesOutput = await newPdf.save();
           const arrayBuffer = pdfBytesOutput.buffer.slice(pdfBytesOutput.byteOffset, pdfBytesOutput.byteOffset + pdfBytesOutput.byteLength) as ArrayBuffer;
-          const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
-          saveAs(blob, `page-${pageNum}.pdf`);
+          const uint8Array = new Uint8Array(arrayBuffer);
+
+          // Add to ZIP
+          zip.file(`page-${pageNum}.pdf`, uint8Array);
           splitCount++;
         }
 
         console.log('[PDFSplitter] Split complete. Total files:', splitCount);
-        message.success(`成功拆分为 ${splitCount} 个PDF文件`);
+
+        // Generate ZIP file and download
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        saveAs(zipBlob, `split-pages-${Date.now()}.zip`);
+
+        message.success(`成功拆分为 ${splitCount} 个PDF文件，已打包为ZIP下载`);
       } else if (splitMode === 'every') {
         // Split every N pages
         if (splitEvery < 1 || splitEvery > totalPages) {
@@ -77,6 +88,8 @@ export const PDFSplitter: React.FC<PDFSplitterProps> = ({
           setSplitting(false);
           return;
         }
+
+        const zip = new JSZip();
 
         for (let i = 0; i < totalPages; i += splitEvery) {
           const newPdf = await PDFDocument.create();
@@ -92,14 +105,18 @@ export const PDFSplitter: React.FC<PDFSplitterProps> = ({
 
           const pdfBytesOutput = await newPdf.save();
           const arrayBuffer = pdfBytesOutput.buffer.slice(pdfBytesOutput.byteOffset, pdfBytesOutput.byteOffset + pdfBytesOutput.byteLength) as ArrayBuffer;
-          const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
-          saveAs(blob, `split-${i + 1}-${endPage}.pdf`);
+          const uint8Array = new Uint8Array(arrayBuffer);
+          zip.file(`split-${i + 1}-${endPage}.pdf`, uint8Array);
           splitCount++;
         }
 
-        message.success(`成功拆分为 ${splitCount} 个PDF文件`);
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        saveAs(zipBlob, `split-every-${splitEvery}-${Date.now()}.zip`);
+        message.success(`成功拆分为 ${splitCount} 个PDF文件，已打包为ZIP下载`);
       } else if (splitMode === 'individual') {
         // Split each page into individual PDF
+        const zip = new JSZip();
+
         for (let i = 0; i < totalPages; i++) {
           const newPdf = await PDFDocument.create();
           const [copiedPage] = await newPdf.copyPages(pdfDoc, [i]);
@@ -107,12 +124,14 @@ export const PDFSplitter: React.FC<PDFSplitterProps> = ({
 
           const pdfBytesOutput = await newPdf.save();
           const arrayBuffer = pdfBytesOutput.buffer.slice(pdfBytesOutput.byteOffset, pdfBytesOutput.byteOffset + pdfBytesOutput.byteLength) as ArrayBuffer;
-          const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
-          saveAs(blob, `page-${i + 1}.pdf`);
+          const uint8Array = new Uint8Array(arrayBuffer);
+          zip.file(`page-${i + 1}.pdf`, uint8Array);
           splitCount++;
         }
 
-        message.success(`成功拆分为 ${splitCount} 个PDF文件`);
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        saveAs(zipBlob, `all-pages-${Date.now()}.zip`);
+        message.success(`成功拆分为 ${splitCount} 个PDF文件，已打包为ZIP下载`);
       }
 
       // Optionally save original
@@ -172,7 +191,7 @@ export const PDFSplitter: React.FC<PDFSplitterProps> = ({
         {/* 说明文字 */}
         <Card size="small">
           <Text>
-            将指定的每一页单独保存为一个独立的PDF文件。例如输入 "1,3,5" 将生成 3 个文件：page-1.pdf、page-3.pdf、page-5.pdf。
+            将指定的每一页单独保存为一个独立的PDF文件，并打包成ZIP下载。例如输入 "1,3,5" 将生成包含 page-1.pdf、page-3.pdf、page-5.pdf 的 ZIP 文件。
           </Text>
           <br />
           <Text type="secondary">
