@@ -45,6 +45,9 @@ export const PDFSplitter: React.FC<PDFSplitterProps> = ({
         // Split: save each selected page as a separate PDF file
         const pages = parsePageRanges(pageRanges, totalPages);
 
+        console.log('[PDFSplitter] Parsed pages:', pages);
+        console.log('[PDFSplitter] Total pages to split:', pages.length);
+
         if (pages.length === 0) {
           message.warning('请输入有效的页面范围');
           setSplitting(false);
@@ -53,6 +56,7 @@ export const PDFSplitter: React.FC<PDFSplitterProps> = ({
 
         // Create a separate PDF for each selected page
         for (const pageNum of pages) {
+          console.log('[PDFSplitter] Splitting page:', pageNum);
           const newPdf = await PDFDocument.create();
           const [copiedPage] = await newPdf.copyPages(pdfDoc, [pageNum - 1]); // Convert to 0-based
           newPdf.addPage(copiedPage);
@@ -64,6 +68,7 @@ export const PDFSplitter: React.FC<PDFSplitterProps> = ({
           splitCount++;
         }
 
+        console.log('[PDFSplitter] Split complete. Total files:', splitCount);
         message.success(`成功拆分为 ${splitCount} 个PDF文件`);
       } else if (splitMode === 'every') {
         // Split every N pages
