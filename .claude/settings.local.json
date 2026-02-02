@@ -36,7 +36,8 @@
       "Bash(npm run)",
       "WebSearch",
       "Bash(codex:*)",
-      "Bash(npm run check)"
+      "Bash(npm run check)",
+      "Bash(git checkout:*)"
     ]
   }
 }
